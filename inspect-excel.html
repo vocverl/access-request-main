@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Excel Inspector</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .upload-area {
+            border: 2px dashed #4aaedf;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background: #2c3c8a;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>📊 Excel Inspector - BOR.xlsx</h1>
+
+    <div class="upload-area">
+        <h2>Upload BOR.xlsx</h2>
+        <input type="file" id="fileInput" accept=".xlsx,.xls">
+    </div>
+
+    <div id="output"></div>
+
+    <script>
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+
+                    let html = '<div class="info">';
+                    html += `<h2>📋 Workbook Info</h2>`;
+                    html += `<p><strong>Bestandsnaam:</strong> ${file.name}</p>`;
+                    html += `<p><strong>Aantal sheets:</strong> ${workbook.SheetNames.length}</p>`;
+                    html += `<p><strong>Sheet namen:</strong> ${workbook.SheetNames.join(', ')}</p>`;
+                    html += '</div>';
+
+                    // Process each sheet
+                    workbook.SheetNames.forEach(sheetName => {
+                        const worksheet = workbook.Sheets[sheetName];
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                        html += `<h2>📄 Sheet: "${sheetName}"</h2>`;
+                        html += `<p><strong>Aantal rijen:</strong> ${jsonData.length}</p>`;
+
+                        if (jsonData.length > 0) {
+                            // Show column names
+                            const columns = Object.keys(jsonData[0]);
+                            html += `<p><strong>Kolommen (${columns.length}):</strong></p>`;
+                            html += '<pre>' + JSON.stringify(columns, null, 2) + '</pre>';
+
+                            // Show first 3 rows as example
+                            html += `<h3>Eerste 3 rijen als voorbeeld:</h3>`;
+                            html += '<table>';
+                            html += '<tr>' + columns.map(col => `<th>${col}</th>`).join('') + '</tr>';
+
+                            jsonData.slice(0, 3).forEach(row => {
+                                html += '<tr>';
+                                columns.forEach(col => {
+                                    html += `<td>${row[col] || ''}</td>`;
+                                });
+                                html += '</tr>';
+                            });
+                            html += '</table>';
+
+                            // Show full JSON of first row
+                            html += '<h3>Eerste rij als JSON:</h3>';
+                            html += '<pre>' + JSON.stringify(jsonData[0], null, 2) + '</pre>';
+                        } else {
+                            html += '<p><em>Geen data gevonden in deze sheet</em></p>';
+                        }
+
+                        html += '<hr>';
+                    });
+
+                    document.getElementById('output').innerHTML = html;
+
+                } catch (error) {
+                    document.getElementById('output').innerHTML =
+                        `<div style="color: red;">Error: ${error.message}</div>`;
+                    console.error(error);
+                }
+            };
+
+            reader.readAsArrayBuffer(file);
+        });
+    </script>
+</body>
+</html>

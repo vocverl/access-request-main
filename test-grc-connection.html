@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GRC Web Service Tester</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #2c3c8a;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #4aaedf;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            background: #2c3c8a;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-right: 10px;
+            font-weight: 600;
+        }
+
+        .btn:hover {
+            background: #1f2b5f;
+        }
+
+        .btn-secondary {
+            background: #4aaedf;
+        }
+
+        .btn-secondary:hover {
+            background: #3a9ecf;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .result.success {
+            background: #e8f5e9;
+            border: 2px solid #4caf50;
+            color: #2e7d32;
+        }
+
+        .result.error {
+            background: #ffebee;
+            border: 2px solid #f44336;
+            color: #c62828;
+        }
+
+        .result.info {
+            background: #e3f2fd;
+            border: 2px solid #2196f3;
+            color: #1565c0;
+        }
+
+        pre {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        .test-section {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-left: 4px solid #4aaedf;
+        }
+
+        .test-section h2 {
+            color: #2c3c8a;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .help-box {
+            background: #fff3e0;
+            border: 2px solid #ff9800;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+
+        .help-box h3 {
+            color: #e65100;
+            margin-bottom: 10px;
+        }
+
+        .help-box ul {
+            margin-left: 20px;
+        }
+
+        .help-box li {
+            margin-bottom: 5px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 GRC Web Service Connection Tester</h1>
+        <p class="subtitle">Test de verbinding met SAP GRC Access Control web services</p>
+
+        <div class="help-box">
+            <h3>📋 Voorbereiding in SAP GRC:</h3>
+            <ul>
+                <li>1. Log in op SAP GRC systeem</li>
+                <li>2. Ga naar transactie <strong>SOAMANAGER</strong></li>
+                <li>3. Zoek naar service: <strong>GRAC_SEARCH_ROLES_WS</strong></li>
+                <li>4. Check of status = <strong>Active</strong></li>
+                <li>5. Kopieer de Endpoint URL en vul hieronder in</li>
+            </ul>
+        </div>
+
+        <!-- Test 1: WSDL Check -->
+        <div class="test-section">
+            <h2>Test 1: WSDL Beschikbaarheid</h2>
+            <p style="color: #666; margin-bottom: 15px;">Test of de WSDL van de web service beschikbaar is</p>
+
+            <div class="form-group">
+                <label for="wsdlUrl">GRC Server Base URL</label>
+                <input type="text" id="wsdlUrl" placeholder="https://grc.vitens.lan:50001" value="https://grc.vitens.lan:50001">
+            </div>
+
+            <button class="btn btn-secondary" onclick="testWSDL()">Test WSDL</button>
+
+            <div id="wsdlResult" class="result"></div>
+        </div>
+
+        <!-- Test 2: Service Connection -->
+        <div class="test-section">
+            <h2>Test 2: Web Service Connectie</h2>
+            <p style="color: #666; margin-bottom: 15px;">Test een echte SOAP call naar de GRC web service</p>
+
+            <div class="form-group">
+                <label for="serverUrl">GRC Server URL</label>
+                <input type="text" id="serverUrl" placeholder="https://grc.vitens.lan:50001" value="https://grc.vitens.lan:50001">
+            </div>
+
+            <div class="form-group">
+                <label for="username">Service Account Username</label>
+                <input type="text" id="username" placeholder="GRC_SERVICE_USER">
+            </div>
+
+            <div class="form-group">
+                <label for="password">Service Account Password</label>
+                <input type="password" id="password" placeholder="••••••••">
+            </div>
+
+            <div class="form-group">
+                <label for="searchTerm">Test Zoekterm (bijv. een rolnaam)</label>
+                <input type="text" id="searchTerm" placeholder="SAP*" value="SAP*">
+            </div>
+
+            <button class="btn" onclick="testWebService()">Test Web Service</button>
+
+            <div id="serviceResult" class="result"></div>
+        </div>
+
+        <!-- Test 3: Quick Ping -->
+        <div class="test-section">
+            <h2>Test 3: Server Bereikbaarheid</h2>
+            <p style="color: #666; margin-bottom: 15px;">Test of de GRC server überhaupt bereikbaar is</p>
+
+            <div class="form-group">
+                <label for="pingUrl">GRC Server URL</label>
+                <input type="text" id="pingUrl" placeholder="https://grc.vitens.lan:50001" value="https://grc.vitens.lan:50001">
+            </div>
+
+            <button class="btn btn-secondary" onclick="testPing()">Test Bereikbaarheid</button>
+
+            <div id="pingResult" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        // Test 1: WSDL Check
+        function testWSDL() {
+            const baseUrl = document.getElementById('wsdlUrl').value.trim();
+            const resultDiv = document.getElementById('wsdlResult');
+
+            if (!baseUrl) {
+                showResult(resultDiv, 'error', 'Vul een server URL in');
+                return;
+            }
+
+            const wsdlUrl = baseUrl + '/sap/bc/srt/rfc/sap/grac_search_roles_ws/002/grac_search_roles_ws/grac_search_roles_ws?wsdl';
+
+            showResult(resultDiv, 'info', 'Bezig met ophalen WSDL...');
+
+            // Open WSDL in nieuw tabblad
+            const newWindow = window.open(wsdlUrl, '_blank');
+
+            setTimeout(() => {
+                showResult(resultDiv, 'info',
+                    `WSDL URL geopend in nieuw tabblad:<br><br>` +
+                    `<strong>${wsdlUrl}</strong><br><br>` +
+                    `<strong>✅ Verwacht resultaat:</strong> XML document met WSDL definities<br>` +
+                    `<strong>❌ Als het mislukt:</strong> 404 error of authentication required<br><br>` +
+                    `<em>Let op: Als je een login prompt krijgt, betekent dit dat de service bestaat maar authenticatie vereist!</em>`
+                );
+            }, 500);
+        }
+
+        // Test 2: Web Service Test
+        async function testWebService() {
+            const serverUrl = document.getElementById('serverUrl').value.trim();
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const searchTerm = document.getElementById('searchTerm').value.trim();
+            const resultDiv = document.getElementById('serviceResult');
+
+            if (!serverUrl || !username || !password) {
+                showResult(resultDiv, 'error', 'Vul alle velden in');
+                return;
+            }
+
+            showResult(resultDiv, 'info', 'Bezig met testen web service...');
+
+            const endpoint = serverUrl + '/sap/bc/srt/rfc/sap/grac_search_roles_ws/002/grac_search_roles_ws/grac_search_roles_ws';
+
+            const soapEnvelope = `<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:sap-com:document:sap:rfc:functions">
+    <soapenv:Header/>
+    <soapenv:Body>
+        <urn:GRAC_SEARCH_ROLES>
+            <SEARCH_STRING>${searchTerm}</SEARCH_STRING>
+        </urn:GRAC_SEARCH_ROLES>
+    </soapenv:Body>
+</soapenv:Envelope>`;
+
+            const credentials = btoa(`${username}:${password}`);
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/xml; charset=utf-8',
+                        'SOAPAction': 'GRAC_SEARCH_ROLES_WS',
+                        'Authorization': `Basic ${credentials}`
+                    },
+                    body: soapEnvelope,
+                    signal: AbortSignal.timeout(30000)
+                });
+
+                const responseText = await response.text();
+
+                if (response.ok) {
+                    // Parse XML response
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(responseText, 'text/xml');
+
+                    // Check for SOAP fault
+                    const fault = xmlDoc.getElementsByTagName('faultstring')[0];
+                    if (fault) {
+                        showResult(resultDiv, 'error',
+                            `<strong>SOAP Fault ontvangen:</strong><br>${fault.textContent}<br><br>` +
+                            `<strong>Mogelijke oorzaken:</strong><br>` +
+                            `- Incorrecte credentials<br>` +
+                            `- Service niet actief<br>` +
+                            `- Incorrecte endpoint URL<br><br>` +
+                            `<strong>Response:</strong><pre>${escapeHtml(responseText)}</pre>`
+                        );
+                        return;
+                    }
+
+                    // Check for roles in response
+                    const roles = xmlDoc.getElementsByTagName('item');
+
+                    showResult(resultDiv, 'success',
+                        `<strong>✅ Verbinding succesvol!</strong><br><br>` +
+                        `<strong>Status:</strong> ${response.status} ${response.statusText}<br>` +
+                        `<strong>Rollen gevonden:</strong> ${roles.length}<br><br>` +
+                        `<strong>Dit betekent:</strong><br>` +
+                        `✅ Web service is actief<br>` +
+                        `✅ Authenticatie werkt<br>` +
+                        `✅ Je kunt deze credentials gebruiken in de Access Request app!<br><br>` +
+                        `<strong>Response preview:</strong><pre>${escapeHtml(responseText.substring(0, 500))}...</pre>`
+                    );
+                } else {
+                    showResult(resultDiv, 'error',
+                        `<strong>❌ HTTP Error ${response.status}:</strong> ${response.statusText}<br><br>` +
+                        `<strong>Mogelijke oorzaken:</strong><br>` +
+                        (response.status === 401 ? '- Incorrecte username/password<br>' : '') +
+                        (response.status === 404 ? '- Endpoint URL niet correct<br>- Service niet gepubliceerd<br>' : '') +
+                        (response.status === 500 ? '- Server error in GRC<br>- Check SOAMANAGER logs<br>' : '') +
+                        `<br><strong>Response:</strong><pre>${escapeHtml(responseText)}</pre>`
+                    );
+                }
+
+            } catch (error) {
+                showResult(resultDiv, 'error',
+                    `<strong>❌ Connectie fout:</strong><br>${error.message}<br><br>` +
+                    `<strong>Mogelijke oorzaken:</strong><br>` +
+                    `- Server niet bereikbaar<br>` +
+                    `- CORS issues (probeer vanuit SAP netwerk)<br>` +
+                    `- Firewall blokkeert verbinding<br>` +
+                    `- Timeout (server reageert te langzaam)<br><br>` +
+                    `<strong>Advies:</strong> Test eerst vanuit het SAP netwerk of via VPN`
+                );
+            }
+        }
+
+        // Test 3: Ping test
+        async function testPing() {
+            const url = document.getElementById('pingUrl').value.trim();
+            const resultDiv = document.getElementById('pingResult');
+
+            if (!url) {
+                showResult(resultDiv, 'error', 'Vul een server URL in');
+                return;
+            }
+
+            showResult(resultDiv, 'info', 'Bezig met testen server bereikbaarheid...');
+
+            try {
+                const startTime = Date.now();
+                const response = await fetch(url, {
+                    method: 'HEAD',
+                    mode: 'no-cors',
+                    signal: AbortSignal.timeout(10000)
+                });
+                const endTime = Date.now();
+                const duration = endTime - startTime;
+
+                showResult(resultDiv, 'success',
+                    `<strong>✅ Server is bereikbaar!</strong><br><br>` +
+                    `<strong>Response tijd:</strong> ${duration}ms<br>` +
+                    `<strong>Status:</strong> Server antwoordt<br><br>` +
+                    `<strong>Volgende stap:</strong> Test nu de Web Service connectie (Test 2)`
+                );
+
+            } catch (error) {
+                // With no-cors, we can't see the actual error, so assume it's reachable if no timeout
+                showResult(resultDiv, 'info',
+                    `<strong>Server test uitgevoerd</strong><br><br>` +
+                    `Vanwege browser CORS beperkingen kunnen we niet direct de status bepalen.<br><br>` +
+                    `<strong>Volgende stap:</strong> Test de Web Service connectie (Test 2) met credentials`
+                );
+            }
+        }
+
+        // Helper functions
+        function showResult(element, type, message) {
+            element.className = `result ${type}`;
+            element.innerHTML = message;
+            element.style.display = 'block';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
