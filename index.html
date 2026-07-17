@@ -164,6 +164,30 @@
             box-shadow: 0 2px 8px rgba(44, 60, 138, 0.3);
         }
 
+        .brand-switch {
+            display: inline-flex;
+            border: 2px solid rgba(255,255,255,0.4);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .brand-option {
+            background: transparent;
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .brand-option:not(.active):hover {
+            background: rgba(255,255,255,0.15);
+        }
+        .brand-option.active {
+            background: white;
+            color: var(--brand-primary);
+        }
+
         .mode-status {
             font-size: 0.8em;
             color: #666;
@@ -1056,6 +1080,10 @@
                 <img src="images/profilus-logo-blue.png" alt="Merk logo" id="headerLogo">
             </a>
             <div class="header-right">
+                <div class="brand-switch" title="Demo: wissel look-and-feel">
+                    <button class="brand-option" data-brand="profilus" onclick="applyBrand('profilus')">Profilus</button>
+                    <button class="brand-option" data-brand="vitens" onclick="applyBrand('vitens')">Vitens</button>
+                </div>
                 <!-- Tools Navigation -->
                 <nav class="tools-nav">
                     <a href="test-grc-connection.html" class="tools-nav-link" title="GRC Connection Test">
@@ -1100,7 +1128,7 @@
                 <div id="filterSection" style="display: none; margin-bottom: 20px;">
                     <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end;">
                         <div>
-                            <label for="afdelingFilter" style="display: block; font-weight: 600; margin-bottom: 5px; color: #3EA0CF; font-size: 0.9em;">
+                            <label for="afdelingFilter" style="display: block; font-weight: 600; margin-bottom: 5px; color: var(--brand-primary); font-size: 0.9em;">
                                 🏢 Filter op Afdeling (Functiegebied)
                             </label>
                             <select id="afdelingFilter" class="search-input" onchange="performSearch()">
@@ -1108,7 +1136,7 @@
                             </select>
                         </div>
                         <div>
-                            <label for="bedrijfsprocesFilter" style="display: block; font-weight: 600; margin-bottom: 5px; color: #3EA0CF; font-size: 0.9em;">
+                            <label for="bedrijfsprocesFilter" style="display: block; font-weight: 600; margin-bottom: 5px; color: var(--brand-primary); font-size: 0.9em;">
                                 ⚙️ Filter op Bedrijfsproces
                             </label>
                             <select id="bedrijfsprocesFilter" class="search-input" onchange="performSearch()">
