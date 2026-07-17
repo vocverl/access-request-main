@@ -15,11 +15,15 @@
         :root {
             --brand-primary: #3EA0CF;
             --brand-primary-light: #4aaedf;
+            --brand-primary-dark: #1f2b5f;
+            --brand-accent-hover: #3a9ecf;
         }
 
         [data-brand="vitens"] {
             --brand-primary: #2c3c8a;
             --brand-primary-light: #3a4db0;
+            --brand-primary-dark: #1f2b5f;
+            --brand-accent-hover: #4a5cbf;
         }
 
         body {
@@ -514,7 +518,7 @@
         }
 
         .btn-primary:hover {
-            background: #1f2b5f;
+            background: var(--brand-primary-dark);
         }
 
         .btn-secondary {
@@ -530,7 +534,7 @@
         }
 
         .btn-secondary:hover {
-            background: #3a9ecf;
+            background: var(--brand-accent-hover);
         }
 
         .results-section {
@@ -603,7 +607,7 @@
         }
 
         .add-btn:hover {
-            background: #3a9ecf;
+            background: var(--brand-accent-hover);
         }
 
         .add-btn:disabled {
@@ -715,7 +719,7 @@
         }
 
         .order-btn:hover:not(:disabled) {
-            background: #1f2b5f;
+            background: var(--brand-primary-dark);
         }
 
         .order-btn:disabled {
@@ -978,7 +982,7 @@
         }
 
         .btn-test:hover {
-            background: #3a9ecf;
+            background: var(--brand-accent-hover);
         }
 
         .btn-save {
@@ -994,7 +998,7 @@
         }
 
         .btn-save:hover {
-            background: #1f2b5f;
+            background: var(--brand-primary-dark);
         }
 
         .connection-status {
