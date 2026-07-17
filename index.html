@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Access Request Portal - Profilus</title>
-    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" id="faviconLink">
     <style>
         * {
             margin: 0;
@@ -1053,7 +1053,7 @@
     <div class="vitens-header">
         <div class="vitens-logo-section">
             <a href="index.html" class="vitens-logo" title="Terug naar home">
-                <img src="images/profilus-logo-blue.png" alt="Profilus Logo">
+                <img src="images/profilus-logo-blue.png" alt="Merk logo" id="headerLogo">
             </a>
             <div class="header-right">
                 <!-- Tools Navigation -->
@@ -1356,6 +1356,49 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 
     <script>
+        // ---- Merk-thema's (Profilus / Vitens) ----
+        const BRANDS = {
+            profilus: {
+                label: 'Profilus',
+                title: 'Access Request Portal - Profilus',
+                logo: 'images/profilus-logo-blue.png',
+                favicon: 'favicon.svg'
+            },
+            vitens: {
+                label: 'Vitens',
+                title: 'Access Request Portal - Vitens',
+                logo: 'images/vitens-logo.png',
+                favicon: 'images/vitens-favicon.png'
+            }
+        };
+        const DEFAULT_BRAND = 'profilus';
+        const BRAND_STORAGE_KEY = 'arp-brand';
+
+        function applyBrand(id) {
+            if (!BRANDS[id]) id = DEFAULT_BRAND;
+            const brand = BRANDS[id];
+            document.documentElement.dataset.brand = id;
+            document.title = brand.title;
+            const logo = document.getElementById('headerLogo');
+            if (logo) { logo.src = brand.logo; logo.alt = brand.label + ' logo'; }
+            const fav = document.getElementById('faviconLink');
+            if (fav) fav.href = brand.favicon;
+            document.querySelectorAll('.brand-option').forEach(el =>
+                el.classList.toggle('active', el.dataset.brand === id));
+            try { localStorage.setItem(BRAND_STORAGE_KEY, id); } catch (e) {}
+        }
+
+        function initBrand() {
+            const param = new URLSearchParams(location.search).get('brand');
+            let stored = null;
+            try { stored = localStorage.getItem(BRAND_STORAGE_KEY); } catch (e) {}
+            const start = (param && BRANDS[param]) ? param
+                        : (stored && BRANDS[stored]) ? stored
+                        : DEFAULT_BRAND;
+            applyBrand(start);
+        }
+        initBrand();
+
         // GRC_CONFIG wordt geladen vanuit grc-config.js
 
         // ============================================
