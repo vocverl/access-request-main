@@ -14,6 +14,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { config, configProblems, endpointStatus } from './config.js';
+import { resolveUser, describeAuth } from './auth.js';
 import { getService, describeServices, SERVICE_KEYS } from './grc/services.js';
 import { soapCall, fetchWsdl, request as grcRequest } from './grc/client.js';
 import { collectNodes, firstValue, describeShape } from './grc/parse.js';
@@ -49,7 +50,25 @@ app.get('/api/health', (req, res) => {
         },
         endpoints: endpointStatus(),
         services: describeServices(),
+        auth: describeAuth(),
         debugEndpoints: config.debugEndpoints
+    });
+});
+
+/**
+ * Wie ben ik volgens de connector?
+ *
+ * De pagina vult hiermee het blok Gebruikersinformatie. Belangrijker: dit is
+ * ook wat de server als aanvrager gebruikt - de browser mag dat niet bepalen.
+ */
+app.get('/api/me', (req, res) => {
+    const gebruiker = resolveUser(req);
+
+    res.json({
+        userId: gebruiker.userId,
+        source: gebruiker.source,
+        trusted: gebruiker.trusted,
+        reason: gebruiker.reason
     });
 });
 
@@ -139,7 +158,6 @@ app.post('/api/roles/search', async (req, res, next) => {
 app.post('/api/requests', async (req, res, next) => {
     try {
         const {
-            requesterId,
             userId,
             roles,
             validFrom,
@@ -165,8 +183,21 @@ app.post('/api/requests', async (req, res, next) => {
             ? `[${refTicketNo}] ${rawJustification ?? ''}`.trim()
             : rawJustification;
 
+        // De aanvrager komt van de server, niet uit de body. Zou de browser dat
+        // mogen bepalen, dan kan iedereen die deze API bereikt een aanvraag
+        // indienen namens een willekeurige collega.
+        const gebruiker = resolveUser(req);
+
+        if (!gebruiker.userId) {
+            return res.status(401).json({
+                error: `Aanvrager niet vast te stellen. ${gebruiker.reason}`,
+                auth: { source: gebruiker.source, trusted: gebruiker.trusted }
+            });
+        }
+
+        const requesterId = gebruiker.userId;
+
         const missing = [];
-        if (!requesterId) missing.push('requesterId');
         if (!Array.isArray(roles) || roles.length === 0) missing.push('roles');
         // Op rawJustification controleren, niet op justification: die laatste
         // is altijd gevuld zodra er een ticketnummer is meegegeven.
