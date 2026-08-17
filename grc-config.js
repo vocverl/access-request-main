@@ -6,30 +6,15 @@
  */
 
 const GRC_CONFIG = {
-    // Server configuratie
+    // Timeout voor aanroepen naar de connector.
+    //
+    // Serveradres en credentials staan hier bewust NIET meer. De browser
+    // praat alleen met zijn eigen origin; de connector kent GRD en houdt het
+    // service account in het serverproces. Zie server/config.js en .env.
     server: {
-        baseUrl: 'https://grc.vitens.lan',
         protocol: 'SOAP',
         version: '12.0',
         timeout: 30000 // 30 seconden
-    },
-
-    // Authenticatie - Basic Auth
-    auth: {
-        type: 'basic',
-        // LET OP: Gebruik in productie een veilige manier om credentials op te slaan
-        // Bijvoorbeeld via environment variables of een credential manager
-        username: '', // Vul in met service account username
-        password: '', // Vul in met service account password
-
-        // Helper functie voor Basic Auth header
-        getAuthHeader: function() {
-            if (this.username && this.password) {
-                const credentials = btoa(`${this.username}:${this.password}`);
-                return `Basic ${credentials}`;
-            }
-            return '';
-        }
     },
 
     // SAP GRC Web Services (SOAP)
