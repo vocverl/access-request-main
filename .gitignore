@@ -1,0 +1,14 @@
+node_modules/
+
+# Geheimen - nooit committen
+.env
+.env.*
+!.env.example
+*.pem
+*.crt
+*.key
+
+# Logs en rommel
+*.log
+npm-debug.log*
+.DS_Store
