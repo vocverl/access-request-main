@@ -1250,33 +1250,17 @@
             </div>
             <div class="modal-body">
                 <form id="settingsForm">
-                    <!-- Server Configuratie -->
+                    <!-- Verbinding met GRC -->
                     <div class="settings-section">
-                        <h3>Server Configuratie</h3>
+                        <h3>Verbinding met SAP GRC</h3>
                         <div class="form-group">
-                            <label for="grcServerUrl">GRC Server URL *</label>
-                            <input type="text" id="grcServerUrl" placeholder="https://grc.vitens.lan" required>
-                            <small>De basis URL van je SAP GRC 12.0 server</small>
-                        </div>
-                        <div class="form-group">
-                            <label for="grcTimeout">Timeout (milliseconden)</label>
-                            <input type="number" id="grcTimeout" value="30000" min="5000" max="120000">
-                            <small>Maximale wachttijd voor API calls (standaard: 30000ms)</small>
-                        </div>
-                    </div>
-
-                    <!-- Authenticatie -->
-                    <div class="settings-section">
-                        <h3>Authenticatie (Basic Auth)</h3>
-                        <div class="form-group">
-                            <label for="grcUsername">Service Account Username *</label>
-                            <input type="text" id="grcUsername" placeholder="GRC_SERVICE_USER" required autocomplete="off">
-                            <small>Service account voor GRC web service calls</small>
-                        </div>
-                        <div class="form-group">
-                            <label for="grcPassword">Service Account Password *</label>
-                            <input type="password" id="grcPassword" placeholder="••••••••" required autocomplete="off">
-                            <small>Wachtwoord wordt veilig opgeslagen in browser localStorage</small>
+                            <div id="connectorStatus">Verbinding controleren...</div>
+                            <small>
+                                Deze pagina praat niet rechtstreeks met SAP GRC, maar met de
+                                connector die haar uitlevert. Serveradres en service account
+                                staan in het <code>.env</code>-bestand op de server en komen
+                                bewust niet in de browser terecht.
+                            </small>
                         </div>
                     </div>
 
@@ -1304,26 +1288,16 @@
                         </div>
                     </div>
 
-                    <!-- Web Services Endpoints -->
+                    <!-- Web Services -->
                     <div class="settings-section">
-                        <h3>Web Services (SOAP Endpoints)</h3>
+                        <h3>Web Services</h3>
                         <div class="form-group">
-                            <label for="wsSearchRoles">GRAC_SEARCH_ROLES_WS Endpoint</label>
-                            <input type="text" id="wsSearchRoles"
-                                   value="/sap/bc/srt/rfc/sap/grac_search_roles_ws/002/grac_search_roles_ws/grac_search_roles_ws">
-                            <small>Endpoint voor zoeken naar SAP rollen</small>
-                        </div>
-                        <div class="form-group">
-                            <label for="wsCreateRequest">GRAC_ORG_ASGN_REQUEST_WS Endpoint</label>
-                            <input type="text" id="wsCreateRequest"
-                                   value="/sap/bc/srt/rfc/sap/grac_org_asgn_request_ws/002/grac_org_asgn_request_ws/grac_org_asgn_request_ws">
-                            <small>Endpoint voor aanmaken van access requests</small>
-                        </div>
-                        <div class="form-group">
-                            <label for="wsRequestStatus">GRAC_REQUEST_STATUS_WS Endpoint</label>
-                            <input type="text" id="wsRequestStatus"
-                                   value="/sap/bc/srt/rfc/sap/grac_request_status_ws/002/grac_request_status_ws/grac_request_status_ws">
-                            <small>Endpoint voor ophalen van request status</small>
+                            <div id="connectorServices">Services ophalen...</div>
+                            <small>
+                                De endpoints komen uit SOAMANAGER en staan in de
+                                serverconfiguratie. Ze zijn hier alleen ter controle
+                                zichtbaar.
+                            </small>
                         </div>
                     </div>
 
@@ -1810,54 +1784,42 @@
         // ============================================
 
         /**
-         * Generieke functie voor SOAP calls naar GRC AC backend
-         * SAP GRC 12.0 gebruikt SOAP web services
+         * Aanroep naar de connector die deze pagina uitlevert.
+         *
+         * De pagina praat NIET rechtstreeks met SAP GRC. Dat kan ook niet: de
+         * ICM van SAP stuurt geen CORS-headers, dus de browser gooit elk
+         * antwoord weg. Bovendien zou het service account dan in de pagina
+         * moeten staan, waar elk script erbij kan.
+         *
+         * In plaats daarvan praat de pagina met zijn eigen origin, en vertaalt
+         * de connector dat naar SOAP. Zie server/index.js.
          */
-        async function callGrcSoapApi(webservice, soapBody) {
-            const serviceConfig = GRC_CONFIG.webservices[webservice];
-            const url = GRC_CONFIG.server.baseUrl + serviceConfig.endpoint;
-
-            // SOAP Envelope template
-            const soapEnvelope = `<?xml version="1.0" encoding="UTF-8"?>
-<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:sap-com:document:sap:rfc:functions">
-    <soapenv:Header/>
-    <soapenv:Body>
-        ${soapBody}
-    </soapenv:Body>
-</soapenv:Envelope>`;
-
-            const options = {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'text/xml; charset=utf-8',
-                    'SOAPAction': serviceConfig.name,
-                    'Authorization': GRC_CONFIG.auth.getAuthHeader()
-                },
-                body: soapEnvelope
-            };
+        async function callConnector(path, { method = 'GET', body } = {}) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(
+                () => controller.abort(),
+                GRC_CONFIG.server.timeout
+            );
 
             try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), GRC_CONFIG.server.timeout);
+                const response = await fetch(path, {
+                    method,
+                    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+                    body: body ? JSON.stringify(body) : undefined,
+                    signal: controller.signal
+                });
 
-                options.signal = controller.signal;
-
-                const response = await fetch(url, options);
-                clearTimeout(timeoutId);
+                const data = await response.json().catch(() => ({}));
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    // De connector zet een leesbare reden in 'error' - die is
+                    // bruikbaarder dan een kale statuscode.
+                    throw new Error(data.error || `Connector gaf status ${response.status}`);
                 }
 
-                const xmlText = await response.text();
-                // Parse XML response
-                const parser = new DOMParser();
-                const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-
-                return xmlDoc;
-            } catch (error) {
-                console.error('GRC SOAP API Error:', error);
-                throw error;
+                return data;
+            } finally {
+                clearTimeout(timeoutId);
             }
         }
 
@@ -1869,38 +1831,25 @@
             try {
                 showLoading(true);
 
-                // SOAP body voor GRAC_SEARCH_ROLES_WS
-                const soapBody = `
-                    <urn:GRAC_SEARCH_ROLES>
-                        <SEARCH_STRING>${searchTerm}</SEARCH_STRING>
-                    </urn:GRAC_SEARCH_ROLES>
-                `;
+                const data = await callConnector('/api/roles/search', {
+                    method: 'POST',
+                    body: { searchTerm }
+                });
 
-                const xmlResponse = await callGrcSoapApi('searchRoles', soapBody);
-
-                // Parse response en extract rol informatie
-                // RoleName, RoleDesc, System, RoleType, RoleOwner
-                const roles = [];
-                const roleNodes = xmlResponse.getElementsByTagName('ROLE');
-
-                for (let i = 0; i < roleNodes.length; i++) {
-                    const roleNode = roleNodes[i];
-                    roles.push({
-                        id: roleNode.getElementsByTagName('ROLE_ID')[0]?.textContent,
-                        name: roleNode.getElementsByTagName('ROLE_NAME')[0]?.textContent,
-                        description: roleNode.getElementsByTagName('ROLE_DESC')[0]?.textContent,
-                        type: roleNode.getElementsByTagName('ROLE_TYPE')[0]?.textContent,
-                        system: roleNode.getElementsByTagName('SYSTEM')[0]?.textContent,
-                        owner: roleNode.getElementsByTagName('ROLE_OWNER')[0]?.textContent ||
-                               roleNode.getElementsByTagName('OWNER')[0]?.textContent ||
-                               'Niet beschikbaar'
-                    });
-                }
-
-                return roles;
+                // Vertaal naar de vorm die de rest van de app al gebruikt.
+                // Een rol bestaat per connector, dus naam alleen is geen
+                // unieke sleutel - systeem hoort erbij.
+                return (data.roles || []).map((role) => ({
+                    id: `${role.system || '?'}:${role.roleName}`,
+                    name: role.roleName,
+                    description: role.roleDescription || '',
+                    type: role.roleTypeDescription || role.roleType || 'SAP rol',
+                    system: role.system,
+                    owner: role.roleOwner || 'Niet beschikbaar'
+                }));
             } catch (error) {
                 console.error('Fout bij zoeken in GRC:', error);
-                showError('Fout bij het ophalen van gegevens uit GRC systeem. Lokale data wordt gebruikt.');
+                showError(`Fout bij het ophalen van gegevens uit GRC systeem: ${error.message}`);
                 return null;
             } finally {
                 showLoading(false);
@@ -1908,55 +1857,50 @@
         }
 
         /**
-         * Verstuur access request naar GRC AC backend
-         * Gebruikt GRAC_ORG_ASGN_REQUEST_WS web service
+         * Verstuur access request naar SAP GRC via de connector.
+         *
+         * De velden komen uit het blok Gebruikersinformatie. Codewaarden zoals
+         * aanvraagsoort en prioriteit staan bewust NIET hier: die horen bij de
+         * inrichting van GRC en zitten in de serverconfiguratie.
          */
         async function submitAccessRequestToGrc(accessRequests) {
             try {
                 showLoading(true);
 
+                const veld = (id) => document.getElementById(id)?.value.trim() || '';
+
                 const currentUser = getCurrentUser();
+                const userId = veld('userId') || currentUser.userId;
+
                 const today = new Date().toISOString().split('T')[0];
                 const oneYearLater = new Date();
                 oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
                 const validTo = oneYearLater.toISOString().split('T')[0];
 
-                // Build rollen lijst voor SOAP request
-                const rolesXml = accessRequests.map(role => `
-                    <ROLE>
-                        <ROLE_NAME>${role.name}</ROLE_NAME>
-                        <VALID_FROM>${today}</VALID_FROM>
-                        <VALID_TO>${validTo}</VALID_TO>
-                    </ROLE>
-                `).join('');
-
-                // SOAP body voor GRAC_ORG_ASGN_REQUEST_WS
-                const soapBody = `
-                    <urn:GRAC_ORG_ASGN_REQUEST>
-                        <REQUESTER_ID>${currentUser.userId}</REQUESTER_ID>
-                        <USER_ID>${currentUser.userId}</USER_ID>
-                        <REF_TICKET_NO>VITENS-AR-${Date.now()}</REF_TICKET_NO>
-                        <JUSTIFICATION>Aangevraagd via Vitens Access Request Portal</JUSTIFICATION>
-                        <ROLES>
-                            ${rolesXml}
-                        </ROLES>
-                    </urn:GRAC_ORG_ASGN_REQUEST>
-                `;
-
-                const xmlResponse = await callGrcSoapApi('createRequest', soapBody);
-
-                // Extract Request ID uit response
-                const requestIdNode = xmlResponse.getElementsByTagName('REQUEST_ID')[0];
-                const requestId = requestIdNode?.textContent;
-
-                if (!requestId) {
-                    throw new Error('Geen Request ID ontvangen van GRC');
-                }
+                const data = await callConnector('/api/requests', {
+                    method: 'POST',
+                    body: {
+                        requesterId: currentUser.userId,
+                        userId,
+                        firstName: veld('userFirstName'),
+                        lastName: veld('userLastName'),
+                        email: veld('userEmail'),
+                        department: veld('userDepartment'),
+                        manager: veld('userManager'),
+                        justification: veld('businessJustification'),
+                        validFrom: today,
+                        validTo,
+                        roles: accessRequests.map((role) => ({
+                            roleName: role.name,
+                            system: role.system
+                        }))
+                    }
+                });
 
                 return {
                     success: true,
-                    requestId: requestId,
-                    message: 'Access request succesvol aangemaakt in SAP GRC'
+                    requestId: data.requestNo || data.requestId,
+                    message: data.message?.text || 'Access request aangemaakt in SAP GRC'
                 };
             } catch (error) {
                 console.error('Fout bij indienen aanvraag naar GRC:', error);
@@ -2390,31 +2334,62 @@
             if (savedSettings) {
                 const settings = JSON.parse(savedSettings);
 
-                // Server configuratie
-                document.getElementById('grcServerUrl').value = settings.serverUrl || 'https://grc.vitens.lan';
-                document.getElementById('grcTimeout').value = settings.timeout || 30000;
+                // Oude versies bewaarden hier het service account. Die resten
+                // wissen we actief: een wachtwoord dat er niet meer hoort te
+                // staan verdwijnt niet vanzelf uit iemands browser.
+                if (settings.password || settings.username || settings.serverUrl) {
+                    delete settings.password;
+                    delete settings.username;
+                    delete settings.serverUrl;
+                    delete settings.wsSearchRoles;
+                    delete settings.wsCreateRequest;
+                    delete settings.wsRequestStatus;
+                    localStorage.setItem('grc_settings', JSON.stringify(settings));
+                    console.info('Oude GRC-credentials uit localStorage verwijderd.');
+                }
 
-                // Authenticatie
-                document.getElementById('grcUsername').value = settings.username || '';
-                document.getElementById('grcPassword').value = settings.password || '';
-
-                // Backend configuratie
                 document.getElementById('useBackend').checked = settings.useBackend || false;
                 document.getElementById('enablePolling').checked = settings.enablePolling || false;
                 document.getElementById('pollingInterval').value = settings.pollingInterval || 15;
-
-                // Web services endpoints
-                document.getElementById('wsSearchRoles').value = settings.wsSearchRoles ||
-                    '/sap/bc/srt/rfc/sap/grac_search_roles_ws/002/grac_search_roles_ws/grac_search_roles_ws';
-                document.getElementById('wsCreateRequest').value = settings.wsCreateRequest ||
-                    '/sap/bc/srt/rfc/sap/grac_org_asgn_request_ws/002/grac_org_asgn_request_ws/grac_org_asgn_request_ws';
-                document.getElementById('wsRequestStatus').value = settings.wsRequestStatus ||
-                    '/sap/bc/srt/rfc/sap/grac_request_status_ws/002/grac_request_status_ws/grac_request_status_ws';
             } else {
-                // Set defaults
-                document.getElementById('grcServerUrl').value = 'https://grc.vitens.lan';
-                document.getElementById('grcTimeout').value = 30000;
                 document.getElementById('pollingInterval').value = 15;
+            }
+
+            // Serveradres, service account en endpoints staan bewust niet meer
+            // in localStorage. Wat de connector gebruikt vragen we op.
+            loadConnectorStatus();
+        }
+
+        /**
+         * Toon waar de connector naartoe praat en welke services klaarstaan.
+         */
+        async function loadConnectorStatus() {
+            const status = document.getElementById('connectorStatus');
+            const services = document.getElementById('connectorServices');
+
+            try {
+                const health = await callConnector('/api/health');
+
+                const tls = health.grc.tlsValidation === 'aan'
+                    ? 'certificaat gevalideerd'
+                    : '⚠️ certificaatvalidatie uitgeschakeld';
+
+                status.innerHTML = health.ok
+                    ? `<strong>✓ Verbonden</strong><br>${health.grc.baseUrl}` +
+                      ` · client ${health.grc.client} · ${health.grc.username}<br>${tls}`
+                    : `<strong>⚠️ Nog niet compleet</strong><br>` +
+                      health.problems.map((p) => `• ${p}`).join('<br>');
+
+                services.innerHTML = health.services
+                    .map((s) => {
+                        const merk = s.endpointConfigured ? '✓' : '✗';
+                        return `${merk} ${s.definition} → ${s.operation}`;
+                    })
+                    .join('<br>');
+            } catch (error) {
+                status.innerHTML =
+                    `<strong>✗ Geen verbinding met de connector</strong><br>${error.message}`;
+                services.textContent = '';
             }
         }
 
@@ -2424,29 +2399,13 @@
         function saveSettings(event) {
             event.preventDefault();
 
+            // Alleen voorkeuren van deze browser. Verbindingsgegevens en
+            // credentials horen op de server, niet in localStorage.
             const settings = {
-                serverUrl: document.getElementById('grcServerUrl').value.trim(),
-                timeout: parseInt(document.getElementById('grcTimeout').value),
-                username: document.getElementById('grcUsername').value.trim(),
-                password: document.getElementById('grcPassword').value, // In productie: encrypt
                 useBackend: document.getElementById('useBackend').checked,
                 enablePolling: document.getElementById('enablePolling').checked,
-                pollingInterval: parseInt(document.getElementById('pollingInterval').value),
-                wsSearchRoles: document.getElementById('wsSearchRoles').value.trim(),
-                wsCreateRequest: document.getElementById('wsCreateRequest').value.trim(),
-                wsRequestStatus: document.getElementById('wsRequestStatus').value.trim()
+                pollingInterval: parseInt(document.getElementById('pollingInterval').value)
             };
-
-            // Validatie
-            if (!settings.serverUrl) {
-                showError('GRC Server URL is verplicht');
-                return;
-            }
-
-            if (settings.useBackend && (!settings.username || !settings.password)) {
-                showError('Username en password zijn verplicht wanneer backend integratie is ingeschakeld');
-                return;
-            }
 
             // Save to localStorage
             localStorage.setItem('grc_settings', JSON.stringify(settings));
@@ -2462,31 +2421,12 @@
          * Apply settings to GRC_CONFIG
          */
         function applySettings(settings) {
-            // Update server configuratie
-            GRC_CONFIG.server.baseUrl = settings.serverUrl;
-            GRC_CONFIG.server.timeout = settings.timeout;
-
-            // Update authenticatie
-            GRC_CONFIG.auth.username = settings.username;
-            GRC_CONFIG.auth.password = settings.password;
-
-            // Update web service endpoints
-            GRC_CONFIG.webservices.searchRoles.endpoint = settings.wsSearchRoles;
-            GRC_CONFIG.webservices.createRequest.endpoint = settings.wsCreateRequest;
-            GRC_CONFIG.webservices.getRequestStatus.endpoint = settings.wsRequestStatus;
-
-            // Update polling
             GRC_CONFIG.polling.enabled = settings.enablePolling;
-            GRC_CONFIG.polling.interval = settings.pollingInterval * 60000; // Convert to ms
+            GRC_CONFIG.polling.interval = settings.pollingInterval * 60000; // naar ms
 
-            // Update useBackend flag
             useBackend = settings.useBackend;
 
-            console.log('GRC Settings applied:', {
-                serverUrl: settings.serverUrl,
-                useBackend: settings.useBackend,
-                username: settings.username ? '***' : '(not set)'
-            });
+            console.log('Instellingen toegepast:', settings);
         }
 
         /**
@@ -2499,54 +2439,22 @@
             statusDiv.textContent = 'Bezig met testen van connectie...';
 
             try {
-                // Temporarily apply settings for test
-                const tempSettings = {
-                    serverUrl: document.getElementById('grcServerUrl').value.trim(),
-                    timeout: parseInt(document.getElementById('grcTimeout').value),
-                    username: document.getElementById('grcUsername').value.trim(),
-                    password: document.getElementById('grcPassword').value
-                };
-
-                if (!tempSettings.serverUrl || !tempSettings.username || !tempSettings.password) {
-                    throw new Error('Vul alle verplichte velden in');
-                }
-
-                // Simple test: try to search with empty string
-                const testUrl = tempSettings.serverUrl +
-                    document.getElementById('wsSearchRoles').value;
-
-                const soapEnvelope = `<?xml version="1.0" encoding="UTF-8"?>
-<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:sap-com:document:sap:rfc:functions">
-    <soapenv:Header/>
-    <soapenv:Body>
-        <urn:GRAC_SEARCH_ROLES>
-            <SEARCH_STRING>TEST</SEARCH_STRING>
-        </urn:GRAC_SEARCH_ROLES>
-    </soapenv:Body>
-</soapenv:Envelope>`;
-
-                const credentials = btoa(`${tempSettings.username}:${tempSettings.password}`);
-
-                const response = await fetch(testUrl, {
+                // Een echte zoekopdracht via de connector is de eerlijkste
+                // test: die raakt de hele keten - connector, TLS, service
+                // account, en de webservice op GRD zelf.
+                const data = await callConnector('/api/roles/search', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'text/xml; charset=utf-8',
-                        'SOAPAction': 'GRAC_SEARCH_ROLES_WS',
-                        'Authorization': `Basic ${credentials}`
-                    },
-                    body: soapEnvelope,
-                    signal: AbortSignal.timeout(tempSettings.timeout)
+                    body: { searchTerm: 'SAP*' }
                 });
 
-                if (response.ok) {
-                    statusDiv.className = 'connection-status success';
-                    statusDiv.textContent = '✓ Connectie succesvol! GRC server is bereikbaar.';
-                } else {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
+                statusDiv.className = 'connection-status success';
+                statusDiv.textContent =
+                    `✓ Connectie succesvol. SAP GRC antwoordde met ${data.count} rollen.`;
+
+                loadConnectorStatus();
             } catch (error) {
                 statusDiv.className = 'connection-status error';
-                statusDiv.textContent = `✗ Connectie mislukt: ${error.message}. Controleer server URL en credentials.`;
+                statusDiv.textContent = `✗ Connectie mislukt: ${error.message}`;
                 console.error('Connection test failed:', error);
             }
         }

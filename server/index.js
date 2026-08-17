@@ -82,11 +82,17 @@ app.post('/api/roles/search', async (req, res, next) => {
             });
         }
 
+        // GRC doet geen impliciete jokertekens: zoeken op "servicedesk" levert
+        // niets op, terwijl "*servicedesk*" de rol FR:V_ICT_MDW_SERVICEDESK
+        // vindt. Wie zelf een * meegeeft houdt de controle.
+        const ruwe = String(searchTerm).trim();
+        const zoekterm = ruwe.includes('*') ? ruwe : `*${ruwe}*`;
+
         const service = getService('searchRoles');
         const result = await soapCall({
             service,
             fields: {
-                RoleName: String(searchTerm).trim(),
+                RoleName: zoekterm,
                 System: system || undefined,
                 RoleType: roleType || undefined,
                 BusinessProcess: businessProcess || undefined,
