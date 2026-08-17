@@ -69,13 +69,32 @@ export function firstValue(node, names) {
     for (const name of names) {
         const hits = collectNodes(node, name);
         for (const hit of hits) {
-            if (hit === null || hit === undefined) continue;
-            if (typeof hit === 'object') continue;
-            const text = String(hit).trim();
+            const text = asText(hit);
             if (text) return text;
         }
     }
     return undefined;
+}
+
+/**
+ * Haalt de tekstwaarde uit een knoop.
+ *
+ * Een element met attributen (bijvoorbeeld <faultstring xml:lang="nl">) komt
+ * uit de parser als object, met de tekst onder '#text'. Zonder deze stap
+ * missen we juist de interessantste velden: SAP hangt een taalattribuut aan
+ * zijn foutmeldingen.
+ */
+export function asText(value) {
+    if (value === null || value === undefined) return undefined;
+
+    if (typeof value === 'object') {
+        if (Array.isArray(value)) return undefined;
+        const inner = value['#text'];
+        if (inner === null || inner === undefined) return undefined;
+        return String(inner).trim() || undefined;
+    }
+
+    return String(value).trim() || undefined;
 }
 
 /**

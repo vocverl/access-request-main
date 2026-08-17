@@ -65,7 +65,45 @@ export const config = {
         searchRoles: str('GRC_EP_SEARCH_ROLES'),
         userAccess: str('GRC_EP_USER_ACCESS'),
         requestStatus: str('GRC_EP_REQUEST_STATUS'),
-        requestDetails: str('GRC_EP_REQUEST_DETAILS')
+        requestDetails: str('GRC_EP_REQUEST_DETAILS'),
+        lookup: str('GRC_EP_LOOKUP')
+    },
+
+    // Deze SAP-versie levert de WSDL niet op "<endpoint>?wsdl", maar achter
+    // een eigen prefix met een per-systeem gegenereerde sleutel. Die staat in
+    // SOAMANAGER onder "WSDL-URL voor binding" en ziet uit als:
+    //   /sap/bc/srt/wsdl/flv_<sleutel>/bndg_url
+    // Leeg laten valt terug op "?wsdl".
+    wsdlPrefix: str('GRC_WSDL_PREFIX').replace(/\/+$/, ''),
+
+    // Codewaarden voor een nieuwe aanvraag. Alle waarden hieronder zijn
+    // bevestigd met aanvraag 15325 op GRD (2026-08-17).
+    //
+    // Codes zijn ALTIJD driecijferig met voorloopnullen: '029' werkt, '29'
+    // levert "Ongeldig aanvr.type".
+    //
+    // Reqtype uit de GRC-inrichting op GRD (tabel soort aanvraag):
+    //   001 Nieuw account      002 Account wijzigen
+    //   003 Account verwijderen 004 Account blokkeren
+    //   023-026 In-/door-/uitstromers en mutaties (Vitens-specifiek)
+    //   029 Preapproved - loopt via pad REQ_PREAPPROVED en wijst direct toe
+    //
+    // Let op: 001 maakt een gebruiker aan in plaats van een rol toe te wijzen.
+    requestDefaults: {
+        requestType: str('GRC_REQ_TYPE', '029'),
+        // 010 = Hoog. Bevestigd met aanvraag 15325 op 2026-08-17.
+        //
+        // Let op de valkuil hier: in de UI is prioriteit via de EUP-instelling
+        // weggehaald en niet verplicht, waardoor GRC intern '000' opslaat. De
+        // webservice weigert '000' juist en eist een code uit de tabel. Twee
+        // kanalen van hetzelfde systeem met verschillende regels.
+        priority: str('GRC_REQ_PRIORITY', '010'),
+        // GRD verwacht hier de connector-ID (bijvoorbeeld GRDCLNT100), niet
+        // de naam van de aanroepende applicatie. Leeg laten betekent: neem de
+        // connector van de eerst aangevraagde rol.
+        initSystem: str('GRC_REQ_INIT_SYSTEM', ''),
+        provItemType: str('GRC_PROV_ITEM_TYPE', 'ROL'),
+        provAction: str('GRC_PROV_ACTION', '006')
     },
 
     // Operatienamen uit de WSDL. Zie server/grc/services.js.
@@ -73,7 +111,8 @@ export const config = {
         searchRoles: str('GRC_OP_SEARCH_ROLES'),
         userAccess: str('GRC_OP_USER_ACCESS'),
         requestStatus: str('GRC_OP_REQUEST_STATUS'),
-        requestDetails: str('GRC_OP_REQUEST_DETAILS')
+        requestDetails: str('GRC_OP_REQUEST_DETAILS'),
+        lookup: str('GRC_OP_LOOKUP')
     }
 };
 

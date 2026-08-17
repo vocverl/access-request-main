@@ -6,8 +6,36 @@ import {
     findFault,
     collectNodes,
     firstValue,
-    describeShape
+    describeShape,
+    asText
 } from '../server/grc/parse.js';
+
+// Zoals GRD het werkelijk terugstuurt: faultstring met een taalattribuut.
+// Hierdoor maakt de XML-parser er een object van in plaats van tekst.
+const FAULT_MET_TAAL = `<?xml version="1.0"?>
+<soap-env:Envelope xmlns:soap-env="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap-env:Body>
+    <soap-env:Fault>
+      <faultcode>soap-env:Server</faultcode>
+      <faultstring xml:lang="nl">Fout bij webserviceverwerking</faultstring>
+    </soap-env:Fault>
+  </soap-env:Body>
+</soap-env:Envelope>`;
+
+test('een faultstring met taalattribuut levert wel een leesbare melding', () => {
+    const fault = findFault(parseXml(FAULT_MET_TAAL));
+
+    assert.ok(fault);
+    assert.equal(fault.message, 'Fout bij webserviceverwerking');
+});
+
+test('asText pelt de tekst uit een element met attributen', () => {
+    assert.equal(asText({ '#text': 'hallo', '@_xml:lang': 'nl' }), 'hallo');
+    assert.equal(asText('kaal'), 'kaal');
+    assert.equal(asText({ '@_alleen': 'attribuut' }), undefined);
+    assert.equal(asText(''), undefined);
+    assert.equal(asText(null), undefined);
+});
 
 const FAULT = `<?xml version="1.0"?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
