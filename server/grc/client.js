@@ -221,10 +221,17 @@ export async function soapCall({ service, fields }) {
     return result;
 }
 
-/** Haalt de WSDL van een service op. Onmisbaar om het formaat te bepalen. */
+/**
+ * Haalt de WSDL van een service op. Onmisbaar om het formaat te bepalen.
+ *
+ * Let op de URL-vorm: deze SAP-versie serveert de WSDL niet op
+ * "<endpoint>?wsdl" - dat geeft een "config key"-fout - maar achter het
+ * prefix uit SOAMANAGER, met het endpointpad erachter geplakt.
+ */
 export function fetchWsdl(service) {
-    return request({
-        path: `${service.endpoint}?wsdl`,
-        method: 'GET'
-    });
+    const path = config.wsdlPrefix
+        ? `${config.wsdlPrefix}${service.endpoint}`
+        : `${service.endpoint}?wsdl`;
+
+    return request({ path, method: 'GET' });
 }

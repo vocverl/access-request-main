@@ -21,22 +21,40 @@ const DEFINITIONS = {
     searchRoles: {
         definition: 'GRAC_SEARCH_ROLES_WS',
         description: 'Rollen zoeken',
-        defaultOperation: 'GracSearchRoles'
+        // Gecontroleerd tegen de WSDL van GRD op 2026-08-17.
+        defaultOperation: 'GracIdmRoleSearchServices',
+        verified: true
     },
     userAccess: {
         definition: 'GRAC_USER_ACCES_WS',
         description: 'Access request indienen',
-        defaultOperation: 'GracIdmUserAccessWs'
+        // Gecontroleerd tegen de WSDL van GRD op 2026-08-17.
+        defaultOperation: 'GracIdmUsrAccsReqServices',
+        verified: true
     },
     requestStatus: {
         definition: 'GRAC_REQUEST_STATUS_WS',
         description: 'Status van een aanvraag',
-        defaultOperation: 'GracRequestStatusWs'
+        defaultOperation: 'GracIdmRequestStatServices',
+        verified: true
     },
     requestDetails: {
         definition: 'GRAC_REQUEST_DETAILS_WS',
         description: 'Details van een aanvraag',
-        defaultOperation: 'GracRequestDetailsWs'
+        defaultOperation: 'GracIdmReqDetailsServices',
+        verified: true
+    },
+    lookup: {
+        definition: 'GRAC_LOOKUP_WS',
+        description: 'Geldige waardelijsten opvragen (prioriteit, aanvraagsoort)',
+        // Gecontroleerd tegen de WSDL van GRD op 2026-08-17.
+        //
+        // Werkt technisch, maar geeft momenteel lege lijsten terug - ook voor
+        // RequestType, waarvan we weten dat er 29 rijen zijn. Zonder
+        // foutmelding, wat wijst op ontbrekende leesrechten van het service
+        // account op de GRC-configuratietabellen.
+        defaultOperation: 'GracIdmLookupServices',
+        verified: true
     }
 };
 
