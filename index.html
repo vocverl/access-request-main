@@ -1869,8 +1869,9 @@
 
                 const veld = (id) => document.getElementById(id)?.value.trim() || '';
 
-                const currentUser = getCurrentUser();
-                const userId = veld('userId') || currentUser.userId;
+                // requesterId sturen we niet mee: de server bepaalt zelf wie de
+                // aanvrager is. Zie server/auth.js.
+                const userId = veld('userId') || getCurrentUser().userId;
 
                 const today = new Date().toISOString().split('T')[0];
                 const oneYearLater = new Date();
@@ -1880,7 +1881,6 @@
                 const data = await callConnector('/api/requests', {
                     method: 'POST',
                     body: {
-                        requesterId: currentUser.userId,
                         userId,
                         firstName: veld('userFirstName'),
                         lastName: veld('userLastName'),
@@ -1913,18 +1913,44 @@
         /**
          * Haal huidige gebruiker op (SSO/AD integratie)
          */
+        // Identiteit zoals de connector die vaststelt. Wordt bij het laden
+        // opgehaald; null zolang dat nog niet gelukt is.
+        let huidigeGebruiker = null;
+
+        /**
+         * Haal op wie de server denkt dat we zijn.
+         *
+         * De pagina bepaalt dit NIET zelf. Achter een SSO-proxy komt de
+         * identiteit uit een header; lokaal uit LOCAL_USER_ID in .env. De
+         * server gebruikt dezelfde bron als aanvrager van een access request,
+         * dus wat hier staat is ook wat er straks in GRC terechtkomt.
+         */
+        async function loadCurrentUser() {
+            try {
+                const ik = await callConnector('/api/me');
+
+                huidigeGebruiker = ik.userId ? { userId: ik.userId } : null;
+
+                if (!ik.userId) {
+                    showError(`Aanmelding onbekend: ${ik.reason}`);
+                } else if (!ik.trusted) {
+                    // Eerlijk zijn over waar dit vandaan komt: in
+                    // ontwikkelmodus is de gebruiker ingesteld, niet bewezen.
+                    console.info(`Gebruiker ${ik.userId} - ${ik.reason}`);
+                }
+
+                return huidigeGebruiker;
+            } catch (error) {
+                console.error('Kan identiteit niet ophalen:', error);
+                showError(`Kan niet vaststellen wie je bent: ${error.message}`);
+                return null;
+            }
+        }
+
         function getCurrentUser() {
-            // TODO: Implementeer SSO/AD integratie
-            // Voor nu return placeholder
-            return {
-                userId: 'current.user',
-                firstName: 'Huidige',
-                lastName: 'Gebruiker',
-                displayName: 'Huidige Gebruiker',
-                email: 'user@profilus.nl',
-                department: 'IT',
-                manager: 'Manager Naam'
-            };
+            // Bewust geen placeholder meer. Een verzonnen gebruikers-ID leidt
+            // tot een aanvraag op naam van iemand die niet bestaat.
+            return huidigeGebruiker || {};
         }
 
         // ============================================
@@ -1961,12 +1987,12 @@
          */
         function populateCurrentUserInfo() {
             const currentUser = getCurrentUser();
-            document.getElementById('userFirstName').value = currentUser.firstName || '';
-            document.getElementById('userLastName').value = currentUser.lastName || '';
+
+            // Alleen het gebruikers-ID staat vast; dat komt van de server.
+            // Naam, e-mail, manager en afdeling weet de connector niet - die
+            // zouden uit AD of GRC moeten komen. Tot die koppeling er is vult
+            // de gebruiker ze zelf, en laten we ingevulde waarden staan.
             document.getElementById('userId').value = currentUser.userId || '';
-            document.getElementById('userEmail').value = currentUser.email || '';
-            document.getElementById('userManager').value = currentUser.manager || '';
-            document.getElementById('userDepartment').value = currentUser.department || '';
         }
 
         /**
@@ -2690,8 +2716,8 @@
                 applySettings(settings);
             }
 
-            // Populate current user info on load
-            populateCurrentUserInfo();
+            // Eerst vaststellen wie we zijn, dan pas het formulier vullen.
+            loadCurrentUser().then(populateCurrentUserInfo);
         });
     </script>
 </body>

@@ -46,6 +46,19 @@ export const config = {
 
     debugEndpoints: bool('ENABLE_DEBUG_ENDPOINTS'),
 
+    // Hoe de connector vaststelt wie er achter de browser zit. Zie auth.js.
+    auth: {
+        mode: str('AUTH_MODE', 'local') === 'header' ? 'header' : 'local',
+        header: str('AUTH_HEADER', 'x-remote-user').toLowerCase(),
+        // Zonder deze lijst is header-modus een open deur: iedereen die het
+        // proces rechtstreeks kan bereiken zet zelf een gebruikersnaam.
+        trustedProxies: str('AUTH_TRUSTED_PROXIES')
+            .split(',')
+            .map((adres) => adres.trim())
+            .filter(Boolean),
+        localUserId: str('LOCAL_USER_ID')
+    },
+
     grc: {
         baseUrl: str('GRC_BASE_URL').replace(/\/+$/, ''),
         client: str('GRC_CLIENT'),
@@ -129,6 +142,21 @@ export function configProblems() {
     if (!config.grc.password) problems.push('GRC_PASSWORD ontbreekt');
 
     if (caError) problems.push(caError);
+
+    if (config.auth.mode === 'header' && config.auth.trustedProxies.length === 0) {
+        problems.push(
+            'AUTH_MODE=header zonder AUTH_TRUSTED_PROXIES. Dan zou iedereen die dit ' +
+            'proces bereikt zelf een gebruikersnaam kunnen meesturen; de header ' +
+            'wordt daarom genegeerd.'
+        );
+    }
+
+    if (config.auth.mode === 'local' && !config.auth.localUserId) {
+        problems.push(
+            'AUTH_MODE=local zonder LOCAL_USER_ID. De connector weet dan niet wie de ' +
+            'aanvrager is en kan geen access request indienen.'
+        );
+    }
 
     if (!config.grc.tls.ca && !config.grc.tls.insecure) {
         problems.push(
