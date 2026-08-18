@@ -169,9 +169,25 @@ systeem met verschillende regels.
 | Lege lijsten uit `/api/lookup` | Service account mag de configuratietabellen niet lezen |
 | `Ongeldige invoer of geen geg. beschikb.` | Filterwaarde bestaat wel, maar er hangen geen rollen aan |
 | `Openstaande aanvraag ... bestaat al` | Er loopt al een aanvraag voor die gebruiker op dat systeem |
+| `Ongeldig aanvraagnr.` vlak na het indienen | Nog niet verwerkt. Een nieuwe aanvraag is even niet op te vragen; later wel |
 
 Staat `ENABLE_DEBUG_ENDPOINTS` aan, dan zit de verstuurde en ontvangen XML in het
 `debug`-veld van elk antwoord. Dat is bij een afwijzing meestal het snelste spoor.
+
+### Een nieuwe aanvraag is niet meteen op te vragen
+
+Direct na het indienen geven de status- en detailservice `Ongeldig aanvraagnr.`
+voor een nummer dat GRC net zelf heeft teruggegeven. Later bestaat hij gewoon,
+compleet met `ProvStatus = Succes`.
+
+Trap daar niet in bij het testen: het lijkt alsof GRC succes meldt zonder dat er
+iets gebeurt, maar de aanvraag is er wel. Wacht even, of kijk in GRC zelf.
+
+### Het preapproved-pad maakt gebruikers aan
+
+Aanvraagsoort `029` loopt via `REQ_PREAPPROVED` en wijst direct toe, inclusief
+automatische gebruikersaanmaak als de gebruiker nog niet op de connector bestaat.
+Een aanvraag voor een verzonnen gebruikers-ID levert dus een echte gebruiker op.
 
 ## Beveiliging
 

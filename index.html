@@ -2186,9 +2186,12 @@
          * Vult de testgebruiker in.
          *
          * Tijdelijk: END_USER is de gebruiker waarmee de koppeling met GRD
-         * getest wordt. Aanvragen op naam van de ingelogde gebruiker zelf
-         * kregen wel een nummer terug maar landden niet in GRC; met END_USER
-         * werkt het wel. Weghalen zodra dat is uitgezocht.
+         * getest wordt, zodat een testronde niet op een echte collega landt.
+         * Weghalen zodra de pilot voorbij is.
+         *
+         * Let op bij testen: een nieuwe aanvraag is niet meteen op te vragen
+         * via de status- en detailservice. Even later bestaat hij wel. Niet
+         * concluderen dat er niets is aangemaakt.
          */
         function vulTestgebruikerIn() {
             document.getElementById('userId').value = TESTGEBRUIKER.userId;
