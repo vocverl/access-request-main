@@ -3,19 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GRC Web Service Tester</title>
+    <title>Connector Test - SAP GRC</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
             background: #f5f5f5;
             padding: 20px;
+            line-height: 1.5;
         }
 
         .container {
@@ -27,391 +24,359 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
-        h1 {
-            color: #2c3c8a;
-            margin-bottom: 10px;
+        h1 { color: #2c3c8a; margin-bottom: 6px; font-size: 1.6em; }
+        .subtitle { color: #666; margin-bottom: 24px; }
+
+        .uitleg {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 14px 16px;
+            border-radius: 4px;
+            margin-bottom: 24px;
+            font-size: 0.92em;
+            color: #1a3f5c;
         }
 
-        .subtitle {
-            color: #666;
-            margin-bottom: 30px;
+        .uitleg code {
+            background: rgba(0,0,0,0.06);
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-size: 0.95em;
         }
 
-        .form-group {
-            margin-bottom: 20px;
+        .test {
+            background: #fafafa;
+            padding: 18px 20px;
+            border-radius: 6px;
+            margin-bottom: 18px;
+            border-left: 4px solid #4aaedf;
         }
 
-        label {
-            display: block;
-            font-weight: 600;
-            margin-bottom: 8px;
-            color: #333;
-        }
+        .test h2 { color: #2c3c8a; font-size: 1.1em; margin-bottom: 4px; }
+        .test p.wat { color: #666; font-size: 0.88em; margin-bottom: 12px; }
+
+        label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.88em; }
 
         input, select {
             width: 100%;
-            padding: 12px;
+            padding: 9px 11px;
             border: 2px solid #ddd;
             border-radius: 4px;
-            font-size: 14px;
+            font-size: 0.95em;
+            margin-bottom: 10px;
+            font-family: inherit;
         }
 
-        input:focus, select:focus {
-            outline: none;
-            border-color: #4aaedf;
-        }
+        input:focus, select:focus { outline: none; border-color: #4aaedf; }
 
         .btn {
-            padding: 12px 24px;
+            padding: 9px 18px;
             background: #2c3c8a;
             color: white;
             border: none;
             border-radius: 4px;
-            font-size: 16px;
-            cursor: pointer;
-            margin-right: 10px;
+            font-size: 0.95em;
             font-weight: 600;
+            cursor: pointer;
         }
 
-        .btn:hover {
-            background: #1f2b5f;
-        }
-
-        .btn-secondary {
-            background: #4aaedf;
-        }
-
-        .btn-secondary:hover {
-            background: #3a9ecf;
-        }
+        .btn:hover { background: #1f2b5f; }
+        .btn:disabled { background: #9aa; cursor: wait; }
 
         .result {
-            margin-top: 20px;
-            padding: 15px;
+            margin-top: 14px;
+            padding: 12px 14px;
             border-radius: 4px;
             display: none;
+            font-size: 0.9em;
         }
 
-        .result.success {
-            background: #e8f5e9;
-            border: 2px solid #4caf50;
-            color: #2e7d32;
-        }
-
-        .result.error {
-            background: #ffebee;
-            border: 2px solid #f44336;
-            color: #c62828;
-        }
-
-        .result.info {
-            background: #e3f2fd;
-            border: 2px solid #2196f3;
-            color: #1565c0;
-        }
+        .result.bezig { display: block; background: #e3f2fd; border: 2px solid #2196f3; color: #1565c0; }
+        .result.goed  { display: block; background: #e8f5e9; border: 2px solid #4caf50; color: #2e7d32; }
+        .result.fout  { display: block; background: #ffebee; border: 2px solid #f44336; color: #c62828; }
 
         pre {
-            background: #f5f5f5;
-            padding: 15px;
+            background: #2b2b2b;
+            color: #e6e6e6;
+            padding: 12px;
             border-radius: 4px;
             overflow-x: auto;
-            font-size: 12px;
+            font-size: 0.8em;
             margin-top: 10px;
+            max-height: 340px;
+            line-height: 1.45;
         }
 
-        .test-section {
-            background: #f9f9f9;
-            padding: 20px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            border-left: 4px solid #4aaedf;
-        }
-
-        .test-section h2 {
-            color: #2c3c8a;
-            margin-bottom: 15px;
-            font-size: 1.3em;
-        }
-
-        .help-box {
-            background: #fff3e0;
-            border: 2px solid #ff9800;
-            padding: 15px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-        }
-
-        .help-box h3 {
-            color: #e65100;
-            margin-bottom: 10px;
-        }
-
-        .help-box ul {
-            margin-left: 20px;
-        }
-
-        .help-box li {
-            margin-bottom: 5px;
-            color: #666;
-        }
+        table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.88em; }
+        th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid #ddd; }
+        th { color: #555; font-weight: 600; }
+        .terug { display: inline-block; margin-top: 20px; color: #2c3c8a; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🔍 GRC Web Service Connection Tester</h1>
-        <p class="subtitle">Test de verbinding met SAP GRC Access Control web services</p>
+        <h1>Connector Test</h1>
+        <p class="subtitle">Controleert de keten van deze pagina tot in SAP GRC</p>
 
-        <div class="help-box">
-            <h3>📋 Voorbereiding in SAP GRC:</h3>
-            <ul>
-                <li>1. Log in op SAP GRC systeem</li>
-                <li>2. Ga naar transactie <strong>SOAMANAGER</strong></li>
-                <li>3. Zoek naar service: <strong>GRAC_SEARCH_ROLES_WS</strong></li>
-                <li>4. Check of status = <strong>Active</strong></li>
-                <li>5. Kopieer de Endpoint URL en vul hieronder in</li>
-            </ul>
+        <div class="uitleg">
+            Deze pagina praat niet rechtstreeks met SAP. Ze roept de connector aan die
+            haar uitlevert, en die vertaalt naar SOAP richting GRD. Serveradres en
+            service account staan in <code>.env</code> op de server en komen hier niet
+            in beeld.
+            <br><br>
+            Voorwaarde: <strong>Citrix Secure Access moet verbonden zijn</strong> en de
+            connector moet draaien (<code>npm run dev</code>). Zonder tunnel is
+            <code>grc-dev.vitens.lan</code> niet te vinden en meldt de connector dat ook zo.
         </div>
 
-        <!-- Test 1: WSDL Check -->
-        <div class="test-section">
-            <h2>Test 1: WSDL Beschikbaarheid</h2>
-            <p style="color: #666; margin-bottom: 15px;">Test of de WSDL van de web service beschikbaar is</p>
-
-            <div class="form-group">
-                <label for="wsdlUrl">GRC Server Base URL</label>
-                <input type="text" id="wsdlUrl" placeholder="https://grc.vitens.lan:50001" value="https://grc.vitens.lan:50001">
-            </div>
-
-            <button class="btn btn-secondary" onclick="testWSDL()">Test WSDL</button>
-
-            <div id="wsdlResult" class="result"></div>
+        <!-- 1 -->
+        <div class="test">
+            <h2>1. Verbinding en configuratie</h2>
+            <p class="wat">Draait de connector, is hij compleet ingesteld, en welke services staan klaar?</p>
+            <button class="btn" onclick="testHealth(this)">Controleer</button>
+            <div id="rHealth" class="result"></div>
         </div>
 
-        <!-- Test 2: Service Connection -->
-        <div class="test-section">
-            <h2>Test 2: Web Service Connectie</h2>
-            <p style="color: #666; margin-bottom: 15px;">Test een echte SOAP call naar de GRC web service</p>
-
-            <div class="form-group">
-                <label for="serverUrl">GRC Server URL</label>
-                <input type="text" id="serverUrl" placeholder="https://grc.vitens.lan:50001" value="https://grc.vitens.lan:50001">
-            </div>
-
-            <div class="form-group">
-                <label for="username">Service Account Username</label>
-                <input type="text" id="username" placeholder="GRC_SERVICE_USER">
-            </div>
-
-            <div class="form-group">
-                <label for="password">Service Account Password</label>
-                <input type="password" id="password" placeholder="••••••••">
-            </div>
-
-            <div class="form-group">
-                <label for="searchTerm">Test Zoekterm (bijv. een rolnaam)</label>
-                <input type="text" id="searchTerm" placeholder="SAP*" value="SAP*">
-            </div>
-
-            <button class="btn" onclick="testWebService()">Test Web Service</button>
-
-            <div id="serviceResult" class="result"></div>
+        <!-- 2 -->
+        <div class="test">
+            <h2>2. Wie ben ik</h2>
+            <p class="wat">Welke aanvrager gebruikt de server? Dit komt niet uit de browser.</p>
+            <button class="btn" onclick="testMe(this)">Vraag op</button>
+            <div id="rMe" class="result"></div>
         </div>
 
-        <!-- Test 3: Quick Ping -->
-        <div class="test-section">
-            <h2>Test 3: Server Bereikbaarheid</h2>
-            <p style="color: #666; margin-bottom: 15px;">Test of de GRC server überhaupt bereikbaar is</p>
-
-            <div class="form-group">
-                <label for="pingUrl">GRC Server URL</label>
-                <input type="text" id="pingUrl" placeholder="https://grc.vitens.lan:50001" value="https://grc.vitens.lan:50001">
-            </div>
-
-            <button class="btn btn-secondary" onclick="testPing()">Test Bereikbaarheid</button>
-
-            <div id="pingResult" class="result"></div>
+        <!-- 3 -->
+        <div class="test">
+            <h2>3. Rollen zoeken</h2>
+            <p class="wat">Een echte zoekopdracht op GRD. Raakt de hele keten: tunnel, TLS, service account en de webservice.</p>
+            <label for="zoekterm">Zoekterm</label>
+            <input type="text" id="zoekterm" value="servicedesk"
+                   placeholder="bijv. servicedesk of Z*">
+            <button class="btn" onclick="testZoeken(this)">Zoek in SAP GRC</button>
+            <div id="rZoek" class="result"></div>
         </div>
+
+        <!-- 4 -->
+        <div class="test">
+            <h2>4. WSDL ophalen</h2>
+            <p class="wat">Toont het contract van een webservice. Handig als een aanroep wordt geweigerd en je wilt zien welke velden er echt bestaan.</p>
+            <label for="service">Service</label>
+            <select id="service">
+                <option value="searchRoles">GRAC_SEARCH_ROLES_WS - rollen zoeken</option>
+                <option value="userAccess">GRAC_USER_ACCES_WS - aanvraag indienen</option>
+                <option value="requestStatus">GRAC_REQUEST_STATUS_WS - status</option>
+                <option value="requestDetails">GRAC_REQUEST_DETAILS_WS - details</option>
+                <option value="lookup">GRAC_LOOKUP_WS - waardelijsten</option>
+            </select>
+            <button class="btn" onclick="testWsdl(this)">Haal WSDL op</button>
+            <div id="rWsdl" class="result"></div>
+        </div>
+
+        <!-- 5 -->
+        <div class="test">
+            <h2>5. Aanvraag opzoeken</h2>
+            <p class="wat">Status en details van een bestaande access request.</p>
+            <label for="aanvraagnr">Aanvraagnummer</label>
+            <input type="text" id="aanvraagnr" placeholder="bijv. 15325">
+            <button class="btn" onclick="testAanvraag(this)">Zoek op</button>
+            <div id="rAanvraag" class="result"></div>
+        </div>
+
+        <a class="terug" href="index.html">&larr; Terug naar het portaal</a>
     </div>
 
     <script>
-        // Test 1: WSDL Check
-        function testWSDL() {
-            const baseUrl = document.getElementById('wsdlUrl').value.trim();
-            const resultDiv = document.getElementById('wsdlResult');
-
-            if (!baseUrl) {
-                showResult(resultDiv, 'error', 'Vul een server URL in');
-                return;
-            }
-
-            const wsdlUrl = baseUrl + '/sap/bc/srt/rfc/sap/grac_search_roles_ws/002/grac_search_roles_ws/grac_search_roles_ws?wsdl';
-
-            showResult(resultDiv, 'info', 'Bezig met ophalen WSDL...');
-
-            // Open WSDL in nieuw tabblad
-            const newWindow = window.open(wsdlUrl, '_blank');
-
-            setTimeout(() => {
-                showResult(resultDiv, 'info',
-                    `WSDL URL geopend in nieuw tabblad:<br><br>` +
-                    `<strong>${wsdlUrl}</strong><br><br>` +
-                    `<strong>✅ Verwacht resultaat:</strong> XML document met WSDL definities<br>` +
-                    `<strong>❌ Als het mislukt:</strong> 404 error of authentication required<br><br>` +
-                    `<em>Let op: Als je een login prompt krijgt, betekent dit dat de service bestaat maar authenticatie vereist!</em>`
-                );
-            }, 500);
+        function toon(id, soort, html) {
+            const el = document.getElementById(id);
+            el.className = `result ${soort}`;
+            el.innerHTML = html;
         }
 
-        // Test 2: Web Service Test
-        async function testWebService() {
-            const serverUrl = document.getElementById('serverUrl').value.trim();
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value.trim();
-            const searchTerm = document.getElementById('searchTerm').value.trim();
-            const resultDiv = document.getElementById('serviceResult');
-
-            if (!serverUrl || !username || !password) {
-                showResult(resultDiv, 'error', 'Vul alle velden in');
-                return;
-            }
-
-            showResult(resultDiv, 'info', 'Bezig met testen web service...');
-
-            const endpoint = serverUrl + '/sap/bc/srt/rfc/sap/grac_search_roles_ws/002/grac_search_roles_ws/grac_search_roles_ws';
-
-            const soapEnvelope = `<?xml version="1.0" encoding="UTF-8"?>
-<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:sap-com:document:sap:rfc:functions">
-    <soapenv:Header/>
-    <soapenv:Body>
-        <urn:GRAC_SEARCH_ROLES>
-            <SEARCH_STRING>${searchTerm}</SEARCH_STRING>
-        </urn:GRAC_SEARCH_ROLES>
-    </soapenv:Body>
-</soapenv:Envelope>`;
-
-            const credentials = btoa(`${username}:${password}`);
-
-            try {
-                const response = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'text/xml; charset=utf-8',
-                        'SOAPAction': 'GRAC_SEARCH_ROLES_WS',
-                        'Authorization': `Basic ${credentials}`
-                    },
-                    body: soapEnvelope,
-                    signal: AbortSignal.timeout(30000)
-                });
-
-                const responseText = await response.text();
-
-                if (response.ok) {
-                    // Parse XML response
-                    const parser = new DOMParser();
-                    const xmlDoc = parser.parseFromString(responseText, 'text/xml');
-
-                    // Check for SOAP fault
-                    const fault = xmlDoc.getElementsByTagName('faultstring')[0];
-                    if (fault) {
-                        showResult(resultDiv, 'error',
-                            `<strong>SOAP Fault ontvangen:</strong><br>${fault.textContent}<br><br>` +
-                            `<strong>Mogelijke oorzaken:</strong><br>` +
-                            `- Incorrecte credentials<br>` +
-                            `- Service niet actief<br>` +
-                            `- Incorrecte endpoint URL<br><br>` +
-                            `<strong>Response:</strong><pre>${escapeHtml(responseText)}</pre>`
-                        );
-                        return;
-                    }
-
-                    // Check for roles in response
-                    const roles = xmlDoc.getElementsByTagName('item');
-
-                    showResult(resultDiv, 'success',
-                        `<strong>✅ Verbinding succesvol!</strong><br><br>` +
-                        `<strong>Status:</strong> ${response.status} ${response.statusText}<br>` +
-                        `<strong>Rollen gevonden:</strong> ${roles.length}<br><br>` +
-                        `<strong>Dit betekent:</strong><br>` +
-                        `✅ Web service is actief<br>` +
-                        `✅ Authenticatie werkt<br>` +
-                        `✅ Je kunt deze credentials gebruiken in de Access Request app!<br><br>` +
-                        `<strong>Response preview:</strong><pre>${escapeHtml(responseText.substring(0, 500))}...</pre>`
-                    );
-                } else {
-                    showResult(resultDiv, 'error',
-                        `<strong>❌ HTTP Error ${response.status}:</strong> ${response.statusText}<br><br>` +
-                        `<strong>Mogelijke oorzaken:</strong><br>` +
-                        (response.status === 401 ? '- Incorrecte username/password<br>' : '') +
-                        (response.status === 404 ? '- Endpoint URL niet correct<br>- Service niet gepubliceerd<br>' : '') +
-                        (response.status === 500 ? '- Server error in GRC<br>- Check SOAMANAGER logs<br>' : '') +
-                        `<br><strong>Response:</strong><pre>${escapeHtml(responseText)}</pre>`
-                    );
-                }
-
-            } catch (error) {
-                showResult(resultDiv, 'error',
-                    `<strong>❌ Connectie fout:</strong><br>${error.message}<br><br>` +
-                    `<strong>Mogelijke oorzaken:</strong><br>` +
-                    `- Server niet bereikbaar<br>` +
-                    `- CORS issues (probeer vanuit SAP netwerk)<br>` +
-                    `- Firewall blokkeert verbinding<br>` +
-                    `- Timeout (server reageert te langzaam)<br><br>` +
-                    `<strong>Advies:</strong> Test eerst vanuit het SAP netwerk of via VPN`
-                );
-            }
-        }
-
-        // Test 3: Ping test
-        async function testPing() {
-            const url = document.getElementById('pingUrl').value.trim();
-            const resultDiv = document.getElementById('pingResult');
-
-            if (!url) {
-                showResult(resultDiv, 'error', 'Vul een server URL in');
-                return;
-            }
-
-            showResult(resultDiv, 'info', 'Bezig met testen server bereikbaarheid...');
-
-            try {
-                const startTime = Date.now();
-                const response = await fetch(url, {
-                    method: 'HEAD',
-                    mode: 'no-cors',
-                    signal: AbortSignal.timeout(10000)
-                });
-                const endTime = Date.now();
-                const duration = endTime - startTime;
-
-                showResult(resultDiv, 'success',
-                    `<strong>✅ Server is bereikbaar!</strong><br><br>` +
-                    `<strong>Response tijd:</strong> ${duration}ms<br>` +
-                    `<strong>Status:</strong> Server antwoordt<br><br>` +
-                    `<strong>Volgende stap:</strong> Test nu de Web Service connectie (Test 2)`
-                );
-
-            } catch (error) {
-                // With no-cors, we can't see the actual error, so assume it's reachable if no timeout
-                showResult(resultDiv, 'info',
-                    `<strong>Server test uitgevoerd</strong><br><br>` +
-                    `Vanwege browser CORS beperkingen kunnen we niet direct de status bepalen.<br><br>` +
-                    `<strong>Volgende stap:</strong> Test de Web Service connectie (Test 2) met credentials`
-                );
-            }
-        }
-
-        // Helper functions
-        function showResult(element, type, message) {
-            element.className = `result ${type}`;
-            element.innerHTML = message;
-            element.style.display = 'block';
-        }
-
-        function escapeHtml(text) {
+        function veilig(tekst) {
             const div = document.createElement('div');
-            div.textContent = text;
+            div.textContent = tekst;
             return div.innerHTML;
         }
+
+        /**
+         * Aanroep naar de connector. Geeft altijd status en body terug, ook bij
+         * een fout: bij het opsporen van een probleem is het antwoord van een
+         * mislukte aanroep juist het interessantste.
+         */
+        async function api(pad, opties = {}) {
+            const res = await fetch(pad, opties);
+            const type = res.headers.get('content-type') || '';
+            const body = type.includes('json') ? await res.json() : await res.text();
+            return { ok: res.ok, status: res.status, body };
+        }
+
+        async function metKnop(knop, id, werk) {
+            knop.disabled = true;
+            toon(id, 'bezig', 'Bezig...');
+            try {
+                await werk();
+            } catch (err) {
+                // Een mislukte fetch naar de eigen origin betekent bijna altijd
+                // dat de connector niet draait.
+                toon(id, 'fout',
+                    `<strong>Geen antwoord van de connector.</strong><br>${veilig(err.message)}` +
+                    `<br><br>Draait <code>npm run dev</code>?`);
+            } finally {
+                knop.disabled = false;
+            }
+        }
+
+        function testHealth(knop) {
+            return metKnop(knop, 'rHealth', async () => {
+                const { body: h } = await api('/api/health');
+
+                const rijen = h.services.map(s =>
+                    `<tr><td>${veilig(s.definition)}</td><td>${veilig(s.operation)}</td>` +
+                    `<td>${s.endpointConfigured ? 'ingesteld' : '<strong>ontbreekt</strong>'}</td></tr>`
+                ).join('');
+
+                const tls = h.grc.tlsValidation === 'aan'
+                    ? 'certificaat wordt gevalideerd'
+                    : '<strong>certificaatvalidatie uitgeschakeld</strong>';
+
+                const problemen = h.problems.length
+                    ? `<br><br><strong>Nog te doen:</strong><br>` +
+                      h.problems.map(p => `&bull; ${veilig(p)}`).join('<br>')
+                    : '';
+
+                toon('rHealth', h.ok ? 'goed' : 'fout',
+                    `<strong>${h.ok ? 'Connector is compleet ingesteld' : 'Configuratie is nog niet af'}</strong><br>` +
+                    `${veilig(h.grc.baseUrl || '(geen server ingesteld)')} &middot; client ${veilig(h.grc.client || '?')} ` +
+                    `&middot; ${veilig(h.grc.username || '?')}<br>${tls}` +
+                    `<br>identiteit: ${veilig(h.auth.mode)}` +
+                    problemen +
+                    `<table><tr><th>Servicedefinitie</th><th>Operatie</th><th>Endpoint</th></tr>${rijen}</table>`);
+            });
+        }
+
+        function testMe(knop) {
+            return metKnop(knop, 'rMe', async () => {
+                const { body: ik } = await api('/api/me');
+
+                if (!ik.userId) {
+                    toon('rMe', 'fout',
+                        `<strong>Aanvrager onbekend</strong><br>${veilig(ik.reason || '')}`);
+                    return;
+                }
+
+                toon('rMe', 'goed',
+                    `<strong>${veilig(ik.userId)}</strong><br>` +
+                    `bron: ${veilig(ik.source)} &middot; ` +
+                    (ik.trusted ? 'vastgesteld via SSO' : 'ingesteld, niet via SSO vastgesteld') +
+                    (ik.reason ? `<br><br>${veilig(ik.reason)}` : ''));
+            });
+        }
+
+        function testZoeken(knop) {
+            return metKnop(knop, 'rZoek', async () => {
+                const searchTerm = document.getElementById('zoekterm').value.trim();
+                const start = performance.now();
+
+                const { ok, body } = await api('/api/roles/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ searchTerm })
+                });
+
+                const ms = Math.round(performance.now() - start);
+
+                if (!ok) {
+                    toon('rZoek', 'fout',
+                        `<strong>Mislukt</strong><br>${veilig(body.error || '')}`);
+                    return;
+                }
+
+                const rijen = body.roles.slice(0, 25).map(r =>
+                    `<tr><td>${veilig(r.roleName || '')}</td><td>${veilig(r.system || '')}</td>` +
+                    `<td>${veilig(r.roleTypeDescription || r.roleType || '')}</td>` +
+                    `<td>${veilig(r.roleDescription || '')}</td></tr>`
+                ).join('');
+
+                const meer = body.count > 25 ? `<br><em>(eerste 25 van ${body.count})</em>` : '';
+
+                toon('rZoek', 'goed',
+                    `<strong>${body.count} rollen gevonden</strong> in ${ms} ms<br>` +
+                    `GRC meldt: ${veilig(body.message?.text || '-')}` +
+                    (body.count
+                        ? `<table><tr><th>Rol</th><th>Systeem</th><th>Type</th><th>Omschrijving</th></tr>${rijen}</table>${meer}`
+                        : `<br><br>Tip: GRC zoekt op rolnaam. De connector zet er zelf sterretjes omheen, ` +
+                          `maar een term die nergens in een rolnaam voorkomt levert niets op.`));
+            });
+        }
+
+        function testWsdl(knop) {
+            return metKnop(knop, 'rWsdl', async () => {
+                const service = document.getElementById('service').value;
+                const { ok, status, body } = await api(`/api/debug/wsdl?service=${service}`);
+
+                if (!ok) {
+                    toon('rWsdl', 'fout',
+                        `<strong>HTTP ${status}</strong><br>` +
+                        veilig(typeof body === 'string' ? body.slice(0, 400) : body.error || ''));
+                    return;
+                }
+
+                const xml = typeof body === 'string' ? body : JSON.stringify(body);
+
+                // Een foutmelding van SAP komt ook met status 200 binnen.
+                const fout = xml.match(/<errorText>(.*?)<\/errorText>/s);
+                if (fout) {
+                    toon('rWsdl', 'fout',
+                        `<strong>SAP gaf een foutmelding</strong><br>${veilig(fout[1])}`);
+                    return;
+                }
+
+                const operaties = [...new Set(
+                    [...xml.matchAll(/<(?:wsdl:)?operation name="([^"]+)"/g)].map(m => m[1])
+                )];
+
+                toon('rWsdl', 'goed',
+                    `<strong>WSDL opgehaald</strong> (${xml.length.toLocaleString('nl-NL')} tekens)<br>` +
+                    `operatie(s): ${veilig(operaties.join(', ') || 'geen gevonden')}` +
+                    `<pre>${veilig(xml.slice(0, 3000))}</pre>`);
+            });
+        }
+
+        function testAanvraag(knop) {
+            return metKnop(knop, 'rAanvraag', async () => {
+                const nr = document.getElementById('aanvraagnr').value.trim();
+
+                if (!nr) {
+                    toon('rAanvraag', 'fout', 'Vul een aanvraagnummer in.');
+                    return;
+                }
+
+                const status = await api(`/api/requests/${encodeURIComponent(nr)}/status`);
+                const details = await api(`/api/requests/${encodeURIComponent(nr)}`);
+
+                if (!status.ok) {
+                    toon('rAanvraag', 'fout',
+                        `<strong>Mislukt</strong><br>${veilig(status.body.error || '')}`);
+                    return;
+                }
+
+                const melding = status.body.message?.text || '';
+                const gevonden = !/ongeldig/i.test(melding);
+
+                toon('rAanvraag', gevonden ? 'goed' : 'fout',
+                    `<strong>Aanvraag ${veilig(nr)}</strong><br>` +
+                    `GRC meldt: ${veilig(melding || '-')}` +
+                    `<pre>${veilig(JSON.stringify(
+                        { status: status.body, details: details.body }, null, 2
+                    ).slice(0, 3000))}</pre>`);
+            });
+        }
+
+        // Bij openen meteen laten zien of er iets draait - dat scheelt een klik
+        // wanneer je hier komt omdat er iets niet werkt.
+        window.addEventListener('DOMContentLoaded', () => {
+            testHealth(document.querySelector('.btn'));
+        });
     </script>
 </body>
 </html>
