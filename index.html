@@ -473,7 +473,10 @@
             padding: 10px 4px;
             border: none;
             background: none;
-            color: var(--brand-primary, #3EA0CF);
+            /* Bewust neutraal: een terugvalwaarde met een merkkleur zou op de
+               ene branch de kleur van de andere binnenhalen. Wissen is een
+               secundaire actie en hoeft niet in de huisstijl. */
+            color: #666;
             font-size: 0.9em;
             font-weight: 600;
             cursor: pointer;
