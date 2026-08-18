@@ -2461,9 +2461,18 @@
                             displayResults();
                         } else {
                             // Geen resultaten van GRC
+                            // De melding moet benoemen waarop er gezocht is.
+                            // Bij alleen een filter is er geen zoekterm, en
+                            // 'gevonden voor ""' leest als een fout.
+                            const waarop = [
+                                searchTerm ? `"${escapeHtml(searchTerm)}"` : null,
+                                afdelingFilter ? `afdeling ${escapeHtml(afdelingFilter)}` : null,
+                                bedrijfsprocesFilter ? `proces ${escapeHtml(bedrijfsprocesFilter)}` : null
+                            ].filter(Boolean).join(' en ');
+
                             resultsContainer.innerHTML = `
                                 <div class="no-results">
-                                    Geen rollen gevonden in SAP GRC voor "${searchTerm}"
+                                    Geen rollen gevonden in SAP GRC${waarop ? ` voor ${waarop}` : ''}
                                 </div>
                             `;
                         }
