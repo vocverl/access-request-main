@@ -1597,14 +1597,31 @@
         /**
          * Functiegebieden uit de GRC-configuratie op GRD.
          *
-         * ONVOLLEDIG: alleen de codes die we hebben kunnen verifieren. GRC
-         * geeft ze niet terug in het zoekantwoord en GRAC_LOOKUP_WS levert
-         * lege lijsten zolang het service account de configuratietabellen niet
-         * mag lezen. Aanvullen zodra die lijst beschikbaar is.
+         * GRC zoekt op de code, niet op de omschrijving: FM werkt,
+         * 'Facilitair Management' niet.
+         *
+         * Hardgecodeerd om dezelfde reden als de bedrijfsprocessen:
+         * GRAC_LOOKUP_WS geeft deze lijst wel, maar levert leeg op zolang het
+         * service account de configuratietabellen niet mag lezen.
          */
         const GRC_FUNCTIEGEBIEDEN = [
+            ['ALG', 'Algemeen'],
+            ['AM', 'Asset Management'],
+            ['BD', 'Business Development'],
+            ['BJO', 'Bestuurlijk Juridische Ondersteuning'],
+            ['COMM', 'Communicatie'],
+            ['DIR', 'Directie'],
+            ['EVI', 'Evides'],
+            ['FI', 'Finance'],
             ['FM', 'Facilitair Management'],
-            ['ICT', 'ICT']
+            ['HR', 'Human Resources'],
+            ['ICT', 'ICT'],
+            ['K&F', 'Klant & Facturatie'],
+            ['LAB', 'Laboratorium'],
+            ['N&L', 'Netbeheer en Leveren'],
+            ['O&A', 'Ontwerp en Aanleg'],
+            ['VEI', 'VEI'],
+            ['W&Z', 'Winning en Zuivering']
         ];
 
         /** Vult een dropdown met code/omschrijving-paren. */
