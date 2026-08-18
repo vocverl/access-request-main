@@ -1166,11 +1166,11 @@
                         <label class="user-form-label">Aanvraag voor:</label>
                         <div class="radio-group">
                             <label class="radio-option">
-                                <input type="radio" name="requestFor" value="self" checked onchange="toggleUserFields()">
+                                <input type="radio" name="requestFor" value="self" onchange="toggleUserFields()">
                                 <span>Mezelf</span>
                             </label>
                             <label class="radio-option">
-                                <input type="radio" name="requestFor" value="other" onchange="toggleUserFields()">
+                                <input type="radio" name="requestFor" value="other" checked onchange="toggleUserFields()">
                                 <span>Andere</span>
                             </label>
                         </div>
@@ -1793,6 +1793,16 @@
         // instellingen, voor wie een rolnaam niet uit zijn hoofd weet.
         let autocompleteEnabled = false;
 
+        // Vaste testgebruiker voor de GRC-koppeling. Het e-mailadres is
+        // bewust niet-bezorgbaar (RFC 2606), zodat een notificatie uit een
+        // ontwikkelsysteem niemand bereikt.
+        const TESTGEBRUIKER = {
+            userId: 'END_USER',
+            firstName: 'End',
+            lastName: 'User',
+            email: 'end_user@example.com'
+        };
+
         // ============================================
         // GRC AC BACKEND FUNCTIES
         // ============================================
@@ -1996,9 +2006,24 @@
                 document.getElementById('userLastName').disabled = false;
                 document.getElementById('userId').disabled = false;
                 document.getElementById('userEmail').disabled = false;
-                // Clear fields
                 clearUserFields();
+                vulTestgebruikerIn();
             }
+        }
+
+        /**
+         * Vult de testgebruiker in.
+         *
+         * Tijdelijk: END_USER is de gebruiker waarmee de koppeling met GRD
+         * getest wordt. Aanvragen op naam van de ingelogde gebruiker zelf
+         * kregen wel een nummer terug maar landden niet in GRC; met END_USER
+         * werkt het wel. Weghalen zodra dat is uitgezocht.
+         */
+        function vulTestgebruikerIn() {
+            document.getElementById('userId').value = TESTGEBRUIKER.userId;
+            document.getElementById('userFirstName').value = TESTGEBRUIKER.firstName;
+            document.getElementById('userLastName').value = TESTGEBRUIKER.lastName;
+            document.getElementById('userEmail').value = TESTGEBRUIKER.email;
         }
 
         /**
@@ -2804,7 +2829,7 @@
             }
 
             // Eerst vaststellen wie we zijn, dan pas het formulier vullen.
-            loadCurrentUser().then(populateCurrentUserInfo);
+            loadCurrentUser().then(toggleUserFields);
         });
     </script>
 </body>
