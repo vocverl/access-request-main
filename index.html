@@ -1209,7 +1209,7 @@
                             id="businessJustification"
                             class="user-form-textarea"
                             placeholder="Geef een gedetailleerde reden..."
-                        ></textarea>
+                        >Test</textarea>
                     </div>
                     </div>
                 </div>
@@ -1800,7 +1800,8 @@
             userId: 'END_USER',
             firstName: 'End',
             lastName: 'User',
-            email: 'end_user@example.com'
+            email: 'end_user@example.com',
+            justification: 'Test'
         };
 
         // ============================================
@@ -2024,6 +2025,12 @@
             document.getElementById('userFirstName').value = TESTGEBRUIKER.firstName;
             document.getElementById('userLastName').value = TESTGEBRUIKER.lastName;
             document.getElementById('userEmail').value = TESTGEBRUIKER.email;
+
+            // Alleen aanvullen als het veld leeg is: een reden die de gebruiker
+            // zelf heeft getypt mag niet overschreven worden bij het wisselen
+            // tussen Mezelf en Andere.
+            const reden = document.getElementById('businessJustification');
+            if (!reden.value.trim()) reden.value = TESTGEBRUIKER.justification;
         }
 
         /**
