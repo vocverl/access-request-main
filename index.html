@@ -1461,6 +1461,9 @@
                     statusText = 'Online Modus - Live connectie met SAP GRC';
                     document.getElementById('excelUpload').classList.remove('active');
                     document.getElementById('filterSection').style.display = 'block';
+                    // In Online-modus is er geen Excel om waarden uit af te
+                    // leiden; dan zijn de GRC-codes de bruikbare suggesties.
+                    vulGrcSuggesties();
                     break;
             }
 
@@ -1502,6 +1505,53 @@
             vulSuggesties('bedrijfsprocesOpties', bedrijfsprocessen);
 
             console.log(`Filters gevuld: ${afdelingen.length} afdelingen, ${bedrijfsprocessen.length} bedrijfsprocessen`);
+        }
+
+        /**
+         * Bedrijfsprocessen uit de GRC-configuratie op GRD.
+         *
+         * GRC zoekt op de CODE, niet op de omschrijving: B_PP werkt,
+         * 'Purchase 2 Pay' niet. Vandaar dat de code de waarde is en de
+         * omschrijving alleen als hulp getoond wordt.
+         *
+         * Staat hier hardgecodeerd omdat GRAC_LOOKUP_WS lege lijsten teruggeeft
+         * zolang het service account de configuratietabellen niet mag lezen.
+         * Zodra dat recht er is kan deze lijst weg en komt hij uit GRC zelf.
+         */
+        const GRC_BEDRIJFSPROCESSEN = [
+            ['B_AC', 'Archived'],
+            ['B_AL', 'Algemeen'],
+            ['B_AS', 'Aansluitingen'],
+            ['B_BS', 'Basis'],
+            ['B_FI', 'Finance'],
+            ['B_HR', 'Hire 2 Retire'],
+            ['B_KF', 'Klant & Facturatie'],
+            ['B_LG', 'Logistiek'],
+            ['B_MC', 'Meter 2 Cash'],
+            ['B_MM', 'Meterverwisseling & Meterbeheer'],
+            ['B_OC', 'Order 2 Cash'],
+            ['B_PM', 'Plant Maintenance'],
+            ['B_PP', 'Purchase 2 Pay'],
+            ['B_PS', 'Project Systems'],
+            ['B_RB', 'Reporting Basis'],
+            ['B_RP', 'Reporting'],
+            ['B_SV', 'Service'],
+            ['B_VT', 'Vertrouwelijk'],
+            ['B_ZP', 'Zakenpartner']
+        ];
+
+        /** Zet de GRC-codes als suggesties bij de filtervelden. */
+        function vulGrcSuggesties() {
+            const lijst = document.getElementById('bedrijfsprocesOpties');
+            if (!lijst) return;
+
+            lijst.innerHTML = '';
+            GRC_BEDRIJFSPROCESSEN.forEach(([code, omschrijving]) => {
+                const optie = document.createElement('option');
+                optie.value = code;
+                optie.textContent = omschrijving;
+                lijst.appendChild(optie);
+            });
         }
 
         /**
