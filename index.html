@@ -2216,19 +2216,25 @@
 
             resultsContainer.innerHTML = searchResults.map(item => {
                 const isInCart = cart.some(cartItem => cartItem.id === item.id);
-                const ownerInfo = item.owner ? `<div class="role-owner"><span class="role-owner-label">Rol eigenaar:</span> ${item.owner}</div>` : '';
+                const ownerInfo = item.owner
+                    ? `<div class="role-owner"><span class="role-owner-label">Rol eigenaar:</span> ${escapeHtml(item.owner)}</div>`
+                    : '';
 
+                // De id gaat in een data-attribuut, niet in de onclick. Een
+                // id als "V4DCLNT100:FR:V_ICT_MDW_SERVICEDESK" is geen geldige
+                // JavaScript-expressie, en waarden uit SAP horen sowieso niet
+                // als code te worden uitgevoerd.
                 return `
                     <div class="result-item">
                         <div class="result-info">
-                            <div class="result-name">${item.name}</div>
-                            <div class="result-description">${item.description}</div>
+                            <div class="result-name">${escapeHtml(item.name)}</div>
+                            <div class="result-description">${escapeHtml(item.description)}</div>
                             ${ownerInfo}
-                            <span class="result-type">${item.type}</span>
+                            <span class="result-type">${escapeHtml(item.type)}</span>
                         </div>
                         <button
                             class="add-btn"
-                            onclick="addToCart(${item.id})"
+                            data-id="${escapeHtml(item.id)}"
                             ${isInCart ? 'disabled' : ''}
                         >
                             ${isInCart ? '✓ Toegevoegd' : 'Toevoegen'}
@@ -2278,10 +2284,10 @@
                 cartContainer.innerHTML = cart.map(item => `
                     <div class="cart-item">
                         <div class="cart-item-info">
-                            <div class="cart-item-name">${item.name}</div>
-                            <div class="cart-item-type">${item.type}</div>
+                            <div class="cart-item-name">${escapeHtml(item.name)}</div>
+                            <div class="cart-item-type">${escapeHtml(item.type)}</div>
                         </div>
-                        <button class="remove-btn" onclick="removeFromCart(${item.id})">✕</button>
+                        <button class="remove-btn" data-id="${escapeHtml(item.id)}">✕</button>
                     </div>
                 `).join('');
                 orderBtn.disabled = false;
@@ -2580,6 +2586,23 @@
         /**
          * Escape special regex characters
          */
+        /**
+         * Maakt tekst veilig om in HTML te zetten.
+         *
+         * De rollen komen uit SAP GRC, niet uit een lijst die wij beheren. Een
+         * omschrijving met een < of & erin zou de opmaak breken; met een
+         * <script> erin nog meer.
+         */
+        function escapeHtml(waarde) {
+            if (waarde === null || waarde === undefined) return '';
+            return String(waarde)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
         function escapeRegex(string) {
             return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         }
@@ -2679,6 +2702,22 @@
         // ============================================
         // EVENT LISTENERS
         // ============================================
+
+        // Toevoegen en verwijderen via delegatie: de knoppen worden telkens
+        // opnieuw getekend, dus een listener per knop zou steeds opnieuw
+        // gekoppeld moeten worden.
+        document.addEventListener('click', function (e) {
+            const toevoegen = e.target.closest('.add-btn[data-id]');
+            if (toevoegen) {
+                addToCart(toevoegen.dataset.id);
+                return;
+            }
+
+            const verwijderen = e.target.closest('.remove-btn[data-id]');
+            if (verwijderen) {
+                removeFromCart(verwijderen.dataset.id);
+            }
+        });
 
         // Search input met autocomplete
         document.getElementById('searchInput').addEventListener('input', handleSearchInput);
