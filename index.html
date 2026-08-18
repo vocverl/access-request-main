@@ -431,6 +431,95 @@
             border-color: var(--brand-primary-light, #4aaedf);
         }
 
+        /* Eigen dropdown in plaats van <select>.
+           Een select tekent zijn lijst via het besturingssysteem, buiten de
+           pagina om. Die valt weg bij schermdelen via Teams en negeert de
+           opmaak van de app. Deze lijst is gewoon HTML. */
+        .dropdown { position: relative; }
+
+        .dropdown-knop {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            font-size: 15px;
+            font-family: inherit;
+            color: #333;
+            text-align: left;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            transition: border-color 0.3s;
+        }
+
+        .dropdown-knop:hover { border-color: #bbb; }
+
+        .dropdown-knop:focus,
+        .dropdown.open .dropdown-knop {
+            outline: none;
+            border-color: var(--brand-primary-light, #4aaedf);
+        }
+
+        .dropdown-waarde {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .dropdown-knop.leeg .dropdown-waarde { color: #888; }
+
+        .dropdown-pijl {
+            flex-shrink: 0;
+            font-size: 0.7em;
+            color: #888;
+            transition: transform 0.2s;
+        }
+
+        .dropdown.open .dropdown-pijl { transform: rotate(180deg); }
+
+        .dropdown-lijst {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            max-height: 280px;
+            overflow-y: auto;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.14);
+            z-index: 100;
+        }
+
+        .dropdown-optie {
+            padding: 9px 12px;
+            cursor: pointer;
+            font-size: 0.95em;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .dropdown-optie:last-child { border-bottom: none; }
+
+        .dropdown-optie:hover,
+        .dropdown-optie.actief {
+            background: #f2f7fb;
+        }
+
+        .dropdown-optie[aria-selected="true"] {
+            font-weight: 600;
+            color: var(--brand-primary, #2c3c8a);
+        }
+
+        .dropdown-optie .code {
+            display: inline-block;
+            min-width: 46px;
+            color: #888;
+            font-size: 0.9em;
+        }
+
         .filter-clear {
             padding: 10px 4px;
             border: none;
@@ -1152,14 +1241,30 @@
                 <div id="filterSection" style="display: none; margin-bottom: 20px;">
                     <div class="filter-row">
                         <div class="filter-field">
-                            <label class="filter-label" for="afdelingFilter">Afdeling</label>
-                            <select id="afdelingFilter" class="filter-select" onchange="performSearch()">
+                            <label class="filter-label" for="afdelingKnop">Afdeling</label>
+                            <div class="dropdown" id="afdelingDropdown">
+                                <button type="button" class="dropdown-knop leeg" id="afdelingKnop"
+                                        aria-haspopup="listbox" aria-expanded="false">
+                                    <span class="dropdown-waarde">Alle afdelingen</span>
+                                    <span class="dropdown-pijl">▼</span>
+                                </button>
+                                <div class="dropdown-lijst" role="listbox" hidden></div>
+                            </div>
+                            <select id="afdelingFilter" hidden onchange="performSearch()">
                                 <option value="">Alle afdelingen</option>
                             </select>
                         </div>
                         <div class="filter-field">
-                            <label class="filter-label" for="bedrijfsprocesFilter">Bedrijfsproces</label>
-                            <select id="bedrijfsprocesFilter" class="filter-select" onchange="performSearch()">
+                            <label class="filter-label" for="bedrijfsprocesKnop">Bedrijfsproces</label>
+                            <div class="dropdown" id="bedrijfsprocesDropdown">
+                                <button type="button" class="dropdown-knop leeg" id="bedrijfsprocesKnop"
+                                        aria-haspopup="listbox" aria-expanded="false">
+                                    <span class="dropdown-waarde">Alle bedrijfsprocessen</span>
+                                    <span class="dropdown-pijl">▼</span>
+                                </button>
+                                <div class="dropdown-lijst" role="listbox" hidden></div>
+                            </div>
+                            <select id="bedrijfsprocesFilter" hidden onchange="performSearch()">
                                 <option value="">Alle bedrijfsprocessen</option>
                             </select>
                         </div>
@@ -1539,14 +1644,26 @@
             ['W&Z', 'Winning en Zuivering']
         ];
 
-        /** Vult een dropdown met code/omschrijving-paren. */
+        /**
+         * Onze eigen dropdowns.
+         *
+         * De verborgen <select> blijft de bron van waarheid: alle bestaande
+         * code leest daar .value uit en luistert op 'change'. De zichtbare
+         * lijst is alleen een bedieningslaag die de select bijwerkt.
+         */
+        const DROPDOWNS = {
+            afdelingFilter: 'afdeling',
+            bedrijfsprocesFilter: 'bedrijfsproces'
+        };
+
+        /** Vult zowel de verborgen select als de zichtbare lijst. */
         function vulDropdown(selectId, paren, alleOptie) {
             const select = document.getElementById(selectId);
             if (!select) return;
 
             const huidige = select.value;
-            select.innerHTML = '';
 
+            select.innerHTML = '';
             const alles = document.createElement('option');
             alles.value = '';
             alles.textContent = alleOptie;
@@ -1561,11 +1678,97 @@
                 select.appendChild(optie);
             });
 
-            // Keuze behouden als hij nog bestaat: anders springt het filter
+            // Keuze behouden als hij nog bestaat, anders springt het filter
             // terug op "alles" zodra de lijst opnieuw gevuld wordt.
             if (huidige && [...select.options].some(o => o.value === huidige)) {
                 select.value = huidige;
             }
+
+            tekenDropdownLijst(selectId, alleOptie);
+            werkDropdownKnopBij(selectId);
+        }
+
+        /** Bouwt de zichtbare lijst opnieuw op uit de select. */
+        function tekenDropdownLijst(selectId, alleOptie) {
+            const naam = DROPDOWNS[selectId];
+            const lijst = document.querySelector(`#${naam}Dropdown .dropdown-lijst`);
+            const select = document.getElementById(selectId);
+            if (!lijst || !select) return;
+
+            lijst.innerHTML = '';
+
+            [...select.options].forEach(optie => {
+                const rij = document.createElement('div');
+                rij.className = 'dropdown-optie';
+                rij.setAttribute('role', 'option');
+                rij.dataset.waarde = optie.value;
+                rij.setAttribute('aria-selected', String(optie.value === select.value));
+
+                if (optie.value) {
+                    const streep = optie.textContent.indexOf(' - ');
+                    if (streep > 0) {
+                        const code = document.createElement('span');
+                        code.className = 'code';
+                        code.textContent = optie.value;
+                        rij.appendChild(code);
+                        rij.appendChild(document.createTextNode(
+                            optie.textContent.slice(streep + 3)
+                        ));
+                    } else {
+                        rij.textContent = optie.textContent;
+                    }
+                } else {
+                    rij.textContent = alleOptie ?? optie.textContent;
+                }
+
+                rij.addEventListener('click', () => {
+                    select.value = optie.value;
+                    select.dispatchEvent(new Event('change', { bubbles: true }));
+                    sluitDropdowns();
+                });
+
+                lijst.appendChild(rij);
+            });
+        }
+
+        /** Zet het opschrift van de knop gelijk aan de gekozen waarde. */
+        function werkDropdownKnopBij(selectId) {
+            const naam = DROPDOWNS[selectId];
+            const select = document.getElementById(selectId);
+            const knop = document.getElementById(`${naam}Knop`);
+            if (!select || !knop) return;
+
+            const gekozen = select.options[select.selectedIndex];
+            knop.querySelector('.dropdown-waarde').textContent =
+                gekozen ? gekozen.textContent : '';
+            knop.classList.toggle('leeg', !select.value);
+
+            const lijst = document.querySelector(`#${naam}Dropdown .dropdown-lijst`);
+            if (lijst) {
+                lijst.querySelectorAll('.dropdown-optie').forEach(rij => {
+                    rij.setAttribute('aria-selected',
+                        String(rij.dataset.waarde === select.value));
+                });
+            }
+        }
+
+        function sluitDropdowns() {
+            document.querySelectorAll('.dropdown.open').forEach(d => {
+                d.classList.remove('open');
+                d.querySelector('.dropdown-lijst').hidden = true;
+                d.querySelector('.dropdown-knop').setAttribute('aria-expanded', 'false');
+            });
+        }
+
+        function wisselDropdown(naam) {
+            const dropdown = document.getElementById(`${naam}Dropdown`);
+            const wasOpen = dropdown.classList.contains('open');
+            sluitDropdowns();
+            if (wasOpen) return;
+
+            dropdown.classList.add('open');
+            dropdown.querySelector('.dropdown-lijst').hidden = false;
+            dropdown.querySelector('.dropdown-knop').setAttribute('aria-expanded', 'true');
         }
 
         /** Zet de GRC-codes in de filters. */
@@ -1579,6 +1782,10 @@
         function werkFilterKnopBij() {
             const knop = document.getElementById('filterClear');
             if (!knop) return;
+
+            // Ook het opschrift bijwerken: resetFilters zet de select
+            // rechtstreeks leeg, en dan moet de knop meegaan.
+            Object.keys(DROPDOWNS).forEach(werkDropdownKnopBij);
 
             const actief = Boolean(
                 document.getElementById('afdelingFilter').value ||
@@ -2942,6 +3149,23 @@
         // ============================================
         // EVENT LISTENERS
         // ============================================
+
+        // Eigen dropdowns bedienbaar maken.
+        Object.entries(DROPDOWNS).forEach(([selectId, naam]) => {
+            const knop = document.getElementById(`${naam}Knop`);
+            if (knop) knop.addEventListener('click', () => wisselDropdown(naam));
+        });
+
+        // Buiten de dropdown klikken sluit hem. Zonder dit blijft de lijst
+        // openstaan zodra je er langs klikt.
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('.dropdown')) sluitDropdowns();
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key !== 'Escape') return;
+            if (document.querySelector('.dropdown.open')) sluitDropdowns();
+        });
 
         // Toevoegen en verwijderen via delegatie: de knoppen worden telkens
         // opnieuw getekend, dus een listener per knop zou steeds opnieuw
