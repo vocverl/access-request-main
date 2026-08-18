@@ -2261,9 +2261,12 @@
                     owner: role.roleOwner || 'Niet beschikbaar'
                 }));
             } catch (error) {
+                // Niet opslokken. Wie null teruggeeft maakt een mislukte
+                // zoekopdracht ononderscheidbaar van een lege uitslag, en dan
+                // meldt de app "geen rollen gevonden" terwijl de verbinding
+                // stuk is. De aanroeper vangt hem af en toont de reden.
                 console.error('Fout bij zoeken in GRC:', error);
-                showError(`Fout bij het ophalen van gegevens uit GRC systeem: ${error.message}`);
-                return null;
+                throw error;
             } finally {
                 showLoading(false);
             }
