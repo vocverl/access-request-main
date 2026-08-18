@@ -66,7 +66,7 @@ draait. `.env` staat in `.gitignore`.
 |---|---|
 | `GET /api/health` | Configuratie, services, TLS- en identiteitsstatus |
 | `GET /api/me` | Wie de server als aanvrager gebruikt, en hoe dat is vastgesteld |
-| `POST /api/roles/search` | Rollen zoeken. Body: `{ searchTerm, system?, roleType?, ... }` |
+| `POST /api/roles/search` | Rollen zoeken. Body: `{ searchTerm?, functionalArea?, businessProcess?, subProcess?, system?, roleType?, roleOwner? }` |
 | `POST /api/requests` | Access request indienen |
 | `GET /api/requests/:nr/status` | Status van een aanvraag |
 | `GET /api/requests/:nr` | Details |
@@ -125,6 +125,29 @@ leeg meesturen, levert een afwijzing op. Zie [grc/schema.js](grc/schema.js).
 `servicedesk` levert nul resultaten op, `*servicedesk*` dertien. De connector zet
 er zelf sterretjes omheen als je ze niet meegeeft. Hoofdletters maken niet uit.
 
+Alleen jokertekens is geen zoekopdracht maar een verzoek om alles: `**` liep in
+de time-out van 30 seconden. De connector eist daarom minstens twee tekens die
+geen `*` zijn.
+
+### Filteren op functiegebied en bedrijfsproces
+
+`FunctionalArea` en `BusinessProcess` werken als serverside filter, en mogen ook
+zonder zoekterm - "alle rollen van functiegebied FM" is een zinnige vraag.
+
+Beide willen de **code**, niet de omschrijving: `FM` werkt, `Facilitair
+Management` niet. `B_PP` levert twaalf rollen, `Purchase 2 Pay` nul.
+
+De codes staan hardgecodeerd in `index.html` (`GRC_FUNCTIEGEBIEDEN` en
+`GRC_BEDRIJFSPROCESSEN`), omdat `GRAC_LOOKUP_WS` ze wel zou moeten leveren maar
+lege lijsten teruggeeft. Zodra dat recht er is kunnen beide lijsten weg.
+
+Let op codes met een ampersand (`K&F`, `N&L`, `O&A`, `W&Z`): die moeten als
+`K&amp;F` de envelope in. Dat gaat goed, maar het is het soort teken waar een
+zelfgebouwde XML-opbouw op stuk kan lopen.
+
+Het zoekantwoord bevat functiegebied en bedrijfsproces **niet**. Filteren kan dus
+alleen aan de GRC-kant, niet achteraf op het resultaat.
+
 ### De prioriteit-valkuil
 
 In de UI is het prioriteitsveld via de EUP-instelling verwijderd en niet
@@ -144,6 +167,7 @@ systeem met verschillende regels.
 | `Bevoegdheid ontbreekt voor service ...` | Idem, maar dan als SOAP-fout |
 | `WSP Exception ... config key` | Verkeerde WSDL-URL, zie hierboven |
 | Lege lijsten uit `/api/lookup` | Service account mag de configuratietabellen niet lezen |
+| `Ongeldige invoer of geen geg. beschikb.` | Filterwaarde bestaat wel, maar er hangen geen rollen aan |
 | `Openstaande aanvraag ... bestaat al` | Er loopt al een aanvraag voor die gebruiker op dat systeem |
 
 Staat `ENABLE_DEBUG_ENDPOINTS` aan, dan zit de verstuurde en ontvangen XML in het
