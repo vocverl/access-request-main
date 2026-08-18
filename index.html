@@ -2345,18 +2345,22 @@
 
                 huidigeGebruiker = ik.userId ? { userId: ik.userId } : null;
 
-                if (!ik.userId) {
-                    showError(`Aanmelding onbekend: ${ik.reason}`);
-                } else if (!ik.trusted) {
+                if (ik.userId && !ik.trusted) {
                     // Eerlijk zijn over waar dit vandaan komt: in
                     // ontwikkelmodus is de gebruiker ingesteld, niet bewezen.
                     console.info(`Gebruiker ${ik.userId} - ${ik.reason}`);
+                } else if (!ik.userId) {
+                    console.warn('Aanmelding onbekend:', ik.reason);
                 }
 
                 return huidigeGebruiker;
             } catch (error) {
-                console.error('Kan identiteit niet ophalen:', error);
-                showError(`Kan niet vaststellen wie je bent: ${error.message}`);
+                // Bewust stil. Dit draait bij het openen van de pagina, en in
+                // Demo- of Excel-modus is de connector helemaal niet nodig.
+                // Wie zonder verbinding opstart hoort geen rode balk te zien
+                // voor iets waar hij nog niets mee wilde. De melding komt
+                // vanzelf zodra je iets doet dat de connector wel nodig heeft.
+                console.warn('Identiteit niet op te halen:', error.message);
                 return null;
             }
         }
@@ -2614,10 +2618,15 @@
                         console.error('GRC search error:', error);
                         showLoading(false);
 
+                        // De reden erbij: 'geen verbinding' kan van alles
+                        // betekenen, van een uitstaande VPN tot een geweigerde
+                        // zoekterm.
                         resultsContainer.innerHTML = `
                             <div class="no-results">
-                                🌐 Kan geen verbinding maken met SAP GRC.<br>
-                                <small>Controleer de instellingen (⚙️) of schakel over naar Offline/Demo modus.</small>
+                                🌐 Zoeken in SAP GRC lukt niet.<br>
+                                <small>${escapeHtml(error.message)}</small><br>
+                                <small>Staat Citrix Secure Access aan en draait de connector?
+                                Anders kun je Demo- of Excel-modus gebruiken.</small>
                             </div>
                         `;
                     }
