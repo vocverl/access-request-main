@@ -390,6 +390,65 @@
             border-color: #4aaedf;
         }
 
+        /* Filterbalk.
+           Kleuren via een variabele met terugvalwaarde: main heeft geen
+           CSS-variabelen, de branding-branches wel. Zo klopt het overal. */
+        .filter-row {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .filter-field {
+            flex: 1 1 200px;
+            min-width: 0;
+        }
+
+        .filter-label {
+            display: block;
+            font-size: 0.85em;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 6px;
+        }
+
+        .filter-select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-size: 15px;
+            font-family: inherit;
+            background: white;
+            color: #333;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--brand-primary-light, #4aaedf);
+        }
+
+        .filter-clear {
+            padding: 10px 4px;
+            border: none;
+            background: none;
+            color: var(--brand-primary, #3EA0CF);
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .filter-clear:hover:not(:disabled) { text-decoration: underline; }
+
+        .filter-clear:disabled {
+            color: #ccc;
+            cursor: default;
+        }
+
         /* Autocomplete dropdown */
         .autocomplete-dropdown {
             position: absolute;
@@ -1088,30 +1147,22 @@
 
                 <!-- Filters (alleen zichtbaar in Excel/Online mode) -->
                 <div id="filterSection" style="display: none; margin-bottom: 20px;">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end;">
-                        <div>
-                            <label for="afdelingFilter" style="display: block; font-weight: 600; margin-bottom: 5px; color: #3EA0CF; font-size: 0.9em;">
-                                🏢 Filter op Afdeling (Functiegebied)
-                            </label>
-                            <input id="afdelingFilter" class="search-input" list="afdelingOpties"
-                                   placeholder="Alle afdelingen (bijv. FM, ICT)"
-                                   onchange="performSearch()" autocomplete="off">
-                            <datalist id="afdelingOpties"></datalist>
+                    <div class="filter-row">
+                        <div class="filter-field">
+                            <label class="filter-label" for="afdelingFilter">Afdeling</label>
+                            <select id="afdelingFilter" class="filter-select" onchange="performSearch()">
+                                <option value="">Alle afdelingen</option>
+                            </select>
                         </div>
-                        <div>
-                            <label for="bedrijfsprocesFilter" style="display: block; font-weight: 600; margin-bottom: 5px; color: #3EA0CF; font-size: 0.9em;">
-                                ⚙️ Filter op Bedrijfsproces
-                            </label>
-                            <input id="bedrijfsprocesFilter" class="search-input" list="bedrijfsprocesOpties"
-                                   placeholder="Alle bedrijfsprocessen"
-                                   onchange="performSearch()" autocomplete="off">
-                            <datalist id="bedrijfsprocesOpties"></datalist>
+                        <div class="filter-field">
+                            <label class="filter-label" for="bedrijfsprocesFilter">Bedrijfsproces</label>
+                            <select id="bedrijfsprocesFilter" class="filter-select" onchange="performSearch()">
+                                <option value="">Alle bedrijfsprocessen</option>
+                            </select>
                         </div>
-                        <div>
-                            <button class="btn-secondary" onclick="resetFilters()" style="width: 100%;">
-                                Reset Filters
-                            </button>
-                        </div>
+                        <button id="filterClear" class="filter-clear" onclick="resetFilters()" disabled>
+                            Wissen
+                        </button>
                     </div>
                 </div>
 
@@ -1455,38 +1506,78 @@
             ['B_ZP', 'Zakenpartner']
         ];
 
-        /** Zet de GRC-codes als suggesties bij de filtervelden. */
-        function vulGrcSuggesties() {
-            const lijst = document.getElementById('bedrijfsprocesOpties');
-            if (!lijst) return;
+        /**
+         * Functiegebieden uit de GRC-configuratie op GRD.
+         *
+         * ONVOLLEDIG: alleen de codes die we hebben kunnen verifieren. GRC
+         * geeft ze niet terug in het zoekantwoord en GRAC_LOOKUP_WS levert
+         * lege lijsten zolang het service account de configuratietabellen niet
+         * mag lezen. Aanvullen zodra die lijst beschikbaar is.
+         */
+        const GRC_FUNCTIEGEBIEDEN = [
+            ['FM', 'Facilitair Management'],
+            ['ICT', 'ICT']
+        ];
 
-            lijst.innerHTML = '';
-            GRC_BEDRIJFSPROCESSEN.forEach(([code, omschrijving]) => {
+        /** Vult een dropdown met code/omschrijving-paren. */
+        function vulDropdown(selectId, paren, alleOptie) {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+
+            const huidige = select.value;
+            select.innerHTML = '';
+
+            const alles = document.createElement('option');
+            alles.value = '';
+            alles.textContent = alleOptie;
+            select.appendChild(alles);
+
+            paren.forEach(([code, omschrijving]) => {
                 const optie = document.createElement('option');
                 optie.value = code;
-                optie.textContent = omschrijving;
-                lijst.appendChild(optie);
+                optie.textContent = omschrijving && omschrijving !== code
+                    ? `${code} - ${omschrijving}`
+                    : code;
+                select.appendChild(optie);
             });
+
+            // Keuze behouden als hij nog bestaat: anders springt het filter
+            // terug op "alles" zodra de lijst opnieuw gevuld wordt.
+            if (huidige && [...select.options].some(o => o.value === huidige)) {
+                select.value = huidige;
+            }
         }
 
-        /**
-         * Vult een suggestielijst bij een filterveld.
-         *
-         * Suggesties, geen keuzelijst: in Online-modus is er geen Excel-bestand
-         * om de waarden uit af te leiden, en GRC geeft ze niet terug in het
-         * zoekantwoord. Je moet dus altijd zelf een code kunnen typen - FM of
-         * ICT bijvoorbeeld - ook als er niets voorgesteld wordt.
-         */
-        function vulSuggesties(datalistId, waarden) {
-            const lijst = document.getElementById(datalistId);
-            if (!lijst) return;
+        /** Zet de GRC-codes in de filters. */
+        function vulGrcSuggesties() {
+            vulDropdown('afdelingFilter', GRC_FUNCTIEGEBIEDEN, 'Alle afdelingen');
+            vulDropdown('bedrijfsprocesFilter', GRC_BEDRIJFSPROCESSEN, 'Alle bedrijfsprocessen');
+            werkFilterKnopBij();
+        }
 
-            lijst.innerHTML = '';
-            waarden.forEach(waarde => {
-                const optie = document.createElement('option');
-                optie.value = waarde;
-                lijst.appendChild(optie);
-            });
+        /** De wis-knop is alleen bruikbaar als er iets te wissen valt. */
+        function werkFilterKnopBij() {
+            const knop = document.getElementById('filterClear');
+            if (!knop) return;
+
+            const actief = Boolean(
+                document.getElementById('afdelingFilter').value ||
+                document.getElementById('bedrijfsprocesFilter').value
+            );
+            knop.disabled = !actief;
+        }
+
+        /** Vult een filter met losse waarden (uit Excel, zonder omschrijving). */
+        function vulSuggesties(datalistId, waarden) {
+            const selectId = datalistId === 'afdelingOpties'
+                ? 'afdelingFilter'
+                : 'bedrijfsprocesFilter';
+            const alleOptie = selectId === 'afdelingFilter'
+                ? 'Alle afdelingen'
+                : 'Alle bedrijfsprocessen';
+
+            vulDropdown(selectId, waarden.map(w => [w, '']), alleOptie);
+            werkFilterKnopBij();
         }
 
         /**
@@ -2178,6 +2269,8 @@
         // ============================================
 
         async function performSearch() {
+            werkFilterKnopBij();
+
             const searchTerm = document.getElementById('searchInput').value.trim();
             const resultsContainer = document.getElementById('resultsContainer');
 
