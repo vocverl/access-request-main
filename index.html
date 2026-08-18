@@ -1135,17 +1135,19 @@
                             <label for="afdelingFilter" style="display: block; font-weight: 600; margin-bottom: 5px; color: var(--brand-primary); font-size: 0.9em;">
                                 🏢 Filter op Afdeling (Functiegebied)
                             </label>
-                            <select id="afdelingFilter" class="search-input" onchange="performSearch()">
-                                <option value="">Alle afdelingen</option>
-                            </select>
+                            <input id="afdelingFilter" class="search-input" list="afdelingOpties"
+                                   placeholder="Alle afdelingen (bijv. FM, ICT)"
+                                   onchange="performSearch()" autocomplete="off">
+                            <datalist id="afdelingOpties"></datalist>
                         </div>
                         <div>
                             <label for="bedrijfsprocesFilter" style="display: block; font-weight: 600; margin-bottom: 5px; color: var(--brand-primary); font-size: 0.9em;">
                                 ⚙️ Filter op Bedrijfsproces
                             </label>
-                            <select id="bedrijfsprocesFilter" class="search-input" onchange="performSearch()">
-                                <option value="">Alle bedrijfsprocessen</option>
-                            </select>
+                            <input id="bedrijfsprocesFilter" class="search-input" list="bedrijfsprocesOpties"
+                                   placeholder="Alle bedrijfsprocessen"
+                                   onchange="performSearch()" autocomplete="off">
+                            <datalist id="bedrijfsprocesOpties"></datalist>
                         </div>
                         <div>
                             <button class="btn-secondary" onclick="resetFilters()" style="width: 100%;">
@@ -1496,27 +1498,30 @@
                     .filter(val => val && val !== 'NaN' && val.trim() !== '')
             )].sort();
 
-            // Populate Afdeling dropdown
-            const afdelingFilter = document.getElementById('afdelingFilter');
-            afdelingFilter.innerHTML = '<option value="">Alle afdelingen</option>';
-            afdelingen.forEach(afdeling => {
-                const option = document.createElement('option');
-                option.value = afdeling;
-                option.textContent = afdeling;
-                afdelingFilter.appendChild(option);
-            });
+            vulSuggesties('afdelingOpties', afdelingen);
+            vulSuggesties('bedrijfsprocesOpties', bedrijfsprocessen);
 
-            // Populate Bedrijfsproces dropdown
-            const bedrijfsprocesFilter = document.getElementById('bedrijfsprocesFilter');
-            bedrijfsprocesFilter.innerHTML = '<option value="">Alle bedrijfsprocessen</option>';
-            bedrijfsprocessen.forEach(proces => {
-                const option = document.createElement('option');
-                option.value = proces;
-                option.textContent = proces;
-                bedrijfsprocesFilter.appendChild(option);
-            });
+            console.log(`Filters gevuld: ${afdelingen.length} afdelingen, ${bedrijfsprocessen.length} bedrijfsprocessen`);
+        }
 
-            console.log(`Filters populated: ${afdelingen.length} afdelingen, ${bedrijfsprocessen.length} bedrijfsprocessen`);
+        /**
+         * Vult een suggestielijst bij een filterveld.
+         *
+         * Suggesties, geen keuzelijst: in Online-modus is er geen Excel-bestand
+         * om de waarden uit af te leiden, en GRC geeft ze niet terug in het
+         * zoekantwoord. Je moet dus altijd zelf een code kunnen typen - FM of
+         * ICT bijvoorbeeld - ook als er niets voorgesteld wordt.
+         */
+        function vulSuggesties(datalistId, waarden) {
+            const lijst = document.getElementById(datalistId);
+            if (!lijst) return;
+
+            lijst.innerHTML = '';
+            waarden.forEach(waarde => {
+                const optie = document.createElement('option');
+                optie.value = waarde;
+                lijst.appendChild(optie);
+            });
         }
 
         /**
@@ -1937,13 +1942,17 @@
          * Zoek toegangen in GRC AC systeem
          * Gebruikt GRAC_SEARCH_ROLES_WS web service
          */
-        async function searchAccessInGrc(searchTerm) {
+        async function searchAccessInGrc(searchTerm, filters = {}) {
             try {
                 showLoading(true);
 
                 const data = await callConnector('/api/roles/search', {
                     method: 'POST',
-                    body: { searchTerm }
+                    body: {
+                        searchTerm,
+                        functionalArea: filters.functionalArea || undefined,
+                        businessProcess: filters.businessProcess || undefined
+                    }
                 });
 
                 // Vertaal naar de vorm die de rest van de app al gebruikt.
@@ -2271,28 +2280,21 @@
                     // Online mode - probeer GRC backend
                     try {
                         showLoading(true);
-                        const grcResults = await searchAccessInGrc(searchTerm);
+                        // Afdeling en bedrijfsproces gaan als zoekveld naar GRC,
+                        // niet als filter achteraf: het antwoord van GRC bevat
+                        // die velden niet, dus client-side filteren leverde
+                        // altijd nul resultaten op.
+                        const grcResults = await searchAccessInGrc(searchTerm, {
+                            functionalArea: afdelingFilter,
+                            businessProcess: bedrijfsprocesFilter
+                        });
 
                         if (grcResults && grcResults.length > 0) {
-                            let filteredGrcResults = grcResults;
-
-                            // Apply filters if available
-                            if (afdelingFilter) {
-                                filteredGrcResults = filteredGrcResults.filter(item =>
-                                    item.functiegebied === afdelingFilter
-                                );
-                            }
-
-                            if (bedrijfsprocesFilter) {
-                                filteredGrcResults = filteredGrcResults.filter(item =>
-                                    item.bedrijfsproces === bedrijfsprocesFilter
-                                );
-                            }
-
-                            // Pas fuzzy search toe op GRC resultaten
-                            searchResults = searchTerm ?
-                                fuzzySearch(searchTerm, filteredGrcResults) :
-                                filteredGrcResults.slice(0, 100);
+                            // GRC heeft al gefilterd; fuzzy search rangschikt
+                            // alleen nog op relevantie van de zoekterm.
+                            searchResults = searchTerm
+                                ? fuzzySearch(searchTerm, grcResults)
+                                : grcResults.slice(0, 100);
                             displayResults();
                         } else {
                             // Geen resultaten van GRC

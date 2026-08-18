@@ -89,23 +89,33 @@ app.post('/api/roles/search', async (req, res, next) => {
             system,
             roleType,
             businessProcess,
+            subProcess,
+            functionalArea,
             roleOwner,
             connectorGroup,
             landscape,
             language
         } = req.body ?? {};
 
-        if (!searchTerm || String(searchTerm).trim().length < 2) {
+        // Zoeken op alleen een filter is legitiem: "alle rollen van
+        // functiegebied FM" is een zinnige vraag zonder zoekterm.
+        const heeftFilter = Boolean(
+            businessProcess || subProcess || functionalArea || roleOwner || system
+        );
+
+        if (!heeftFilter && (!searchTerm || String(searchTerm).trim().length < 2)) {
             return res.status(400).json({
-                error: 'searchTerm is verplicht en minimaal 2 tekens'
+                error: 'Geef een zoekterm van minimaal 2 tekens, of kies een filter'
             });
         }
 
         // GRC doet geen impliciete jokertekens: zoeken op "servicedesk" levert
         // niets op, terwijl "*servicedesk*" de rol FR:V_ICT_MDW_SERVICEDESK
         // vindt. Wie zelf een * meegeeft houdt de controle.
-        const ruwe = String(searchTerm).trim();
-        const zoekterm = ruwe.includes('*') ? ruwe : `*${ruwe}*`;
+        const ruwe = String(searchTerm ?? '').trim();
+        const zoekterm = ruwe
+            ? (ruwe.includes('*') ? ruwe : `*${ruwe}*`)
+            : undefined;
 
         const service = getService('searchRoles');
         const result = await soapCall({
@@ -115,6 +125,8 @@ app.post('/api/roles/search', async (req, res, next) => {
                 System: system || undefined,
                 RoleType: roleType || undefined,
                 BusinessProcess: businessProcess || undefined,
+                SubProcess: subProcess || undefined,
+                FunctionalArea: functionalArea || undefined,
                 RoleOwner: roleOwner || undefined,
                 ConnectorGroup: connectorGroup || undefined,
                 Landscape: landscape || undefined,
