@@ -1328,6 +1328,15 @@
                             <input type="number" id="pollingInterval" value="15" min="5" max="60">
                             <small>Hoe vaak de app checkt voor status updates</small>
                         </div>
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="enableAutocomplete">
+                                Suggesties tijdens typen
+                            </label>
+                            <small>Toont een lijst met rollen terwijl je typt. Staat standaard uit
+                            omdat de lijst het zoekveld overdekt; zet hem aan als je een rolnaam
+                            niet precies weet.</small>
+                        </div>
                     </div>
 
                     <!-- Web Services -->
@@ -1863,6 +1872,11 @@
         let cart = [];
         let searchResults = [];
         let useBackend = false; // Zet op true als GRC backend beschikbaar is
+
+        // Suggesties tijdens typen. Standaard uit: de lijst dekt het zoekveld en
+        // de resultaten af terwijl je nog bezig bent. Aan te zetten in de
+        // instellingen, voor wie een rolnaam niet uit zijn hoofd weet.
+        let autocompleteEnabled = false;
 
         // ============================================
         // GRC AC BACKEND FUNCTIES
@@ -2462,6 +2476,8 @@
                 document.getElementById('useBackend').checked = settings.useBackend || false;
                 document.getElementById('enablePolling').checked = settings.enablePolling || false;
                 document.getElementById('pollingInterval').value = settings.pollingInterval || 15;
+                document.getElementById('enableAutocomplete').checked =
+                    settings.enableAutocomplete || false;
             } else {
                 document.getElementById('pollingInterval').value = 15;
             }
@@ -2515,7 +2531,8 @@
             const settings = {
                 useBackend: document.getElementById('useBackend').checked,
                 enablePolling: document.getElementById('enablePolling').checked,
-                pollingInterval: parseInt(document.getElementById('pollingInterval').value)
+                pollingInterval: parseInt(document.getElementById('pollingInterval').value),
+                enableAutocomplete: document.getElementById('enableAutocomplete').checked
             };
 
             // Save to localStorage
@@ -2536,6 +2553,10 @@
             GRC_CONFIG.polling.interval = settings.pollingInterval * 60000; // naar ms
 
             useBackend = settings.useBackend;
+            autocompleteEnabled = Boolean(settings.enableAutocomplete);
+
+            // Meteen effect, ook als de lijst nu openstaat.
+            if (!autocompleteEnabled) hideAutocomplete();
 
             console.log('Instellingen toegepast:', settings);
         }
@@ -2725,6 +2746,13 @@
             // Clear previous timer
             if (autocompleteDebounceTimer) {
                 clearTimeout(autocompleteDebounceTimer);
+            }
+
+            // Uit betekent uit: geen timer, geen zoekwerk, en een eventueel nog
+            // openstaande lijst gaat dicht.
+            if (!autocompleteEnabled) {
+                hideAutocomplete();
+                return;
             }
 
             // Debounce: wait 300ms after user stops typing

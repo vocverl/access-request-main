@@ -218,9 +218,13 @@ De applicatie ondersteunt drie verschillende werkingsmodi voor verschillende use
 - ✅ Volledige workflow integratie
 
 **Vereisten:**
-- GRC server URL geconfigureerd
-- Service account credentials
-- Netwerk toegang tot GRC systeem
+- De **GRC-connector** draait — zie [`server/README.md`](server/README.md)
+- Netwerktoegang tot het GRC-systeem (bij Vitens: Citrix Secure Access)
+
+> De browser praat niet rechtstreeks met SAP. Dat kan niet: SAP stuurt geen
+> CORS-headers, dus de browser gooit elk antwoord weg. En het service account
+> hoort niet in een webpagina, waar iedereen het kan uitlezen. De connector
+> staat ertussen en houdt de credentials op de server.
 
 ---
 
@@ -242,7 +246,16 @@ De applicatie ondersteunt drie verschillende werkingsmodi voor verschillende use
    xdg-open index.html # Linux
    ```
 
-3. **Of gebruik een lokale server** (aanbevolen)
+3. **Start de connector** (nodig voor Online Modus)
+   ```bash
+   npm install
+   cp .env.example .env   # daarna invullen, zie server/README.md
+   npm run dev            # http://127.0.0.1:8086
+   ```
+   De connector levert de app uit én verzorgt de koppeling met SAP GRC.
+   Zonder connector werken Demo- en Excel-modus wel, Online-modus niet.
+
+4. **Of gebruik een lokale server** (alleen Demo/Excel)
    ```bash
    # Python 3
    python -m http.server 8000
@@ -302,16 +315,18 @@ De applicatie draait live op: https://vocverl.github.io/vitens-access-request-ap
 
 ### **Online Modus Gebruik**
 
-1. Klik op ⚙️ Settings icon
-2. Configureer GRC instellingen:
-   - Server URL (bijv. `https://grc.vitens.lan`)
-   - Service account username
-   - Service account password
-   - Endpoint URLs (standaard waarden zijn correct)
-3. Klik "Test Connectie" om te verifiëren
-4. Klik "Opslaan"
-5. Switch naar **Online Modus** 🌐
-6. Zoek en vraag aan - data komt live uit GRC!
+Serveradres, service account en endpoints staan in `.env` op de server, niet
+in de app. Er is dus niets meer in te vullen in het instellingenscherm.
+
+1. Zorg dat de netwerkverbinding staat (bij Vitens: Citrix Secure Access)
+2. Start de connector: `npm run dev`
+3. Open `http://127.0.0.1:8086`
+4. Switch naar **Online Modus** 🌐
+5. Zoek en vraag aan — data komt live uit GRC
+
+Werkt er iets niet, open dan `test-grc-connection.html`. Die loopt de hele
+keten langs en vertelt wáár het misgaat: configuratie, verbinding, autorisatie
+of de webservice zelf.
 
 ### **Keyboard Shortcuts**
 
@@ -367,22 +382,21 @@ vitens-access-request-app/
 
 ### **API Integration - SAP GRC 12.0**
 
-De applicatie integreert met drie SOAP web services:
+De connector spreekt vijf SOAP web services aan. De operatienamen komen uit de
+WSDL van het systeem zelf; zie [`server/README.md`](server/README.md) voor het
+volledige contract en de valkuilen.
 
-#### **1. GRAC_SEARCH_ROLES_WS**
-- **Functie:** Zoeken naar SAP rollen
-- **Input:** Search string
-- **Output:** Lijst met rollen (ID, Name, Description, Type, System, Owner)
+| Servicedefinitie | Operatie | Functie |
+|---|---|---|
+| `GRAC_SEARCH_ROLES_WS` | `GracIdmRoleSearchServices` | Rollen zoeken |
+| `GRAC_USER_ACCES_WS` | `GracIdmUsrAccsReqServices` | Access request indienen |
+| `GRAC_REQUEST_STATUS_WS` | `GracIdmRequestStatServices` | Status opvragen |
+| `GRAC_REQUEST_DETAILS_WS` | `GracIdmReqDetailsServices` | Details opvragen |
+| `GRAC_LOOKUP_WS` | `GracIdmLookupServices` | Geldige codewaarden |
 
-#### **2. GRAC_ORG_ASGN_REQUEST_WS**
-- **Functie:** Aanmaken access requests
-- **Input:** User ID, Requester ID, Roles, Justification
-- **Output:** Request ID voor tracking
-
-#### **3. GRAC_REQUEST_STATUS_WS**
-- **Functie:** Ophalen request status
-- **Input:** Request ID
-- **Output:** Status informatie
+> Let op: voor het indienen is `GRAC_USER_ACCES_WS` de juiste service.
+> `GRAC_ORG_ASSGN_REQUEST_WS` gaat over organisatorische toewijzingen, niet over
+> rolaanvragen — een eerdere versie gebruikte die per abuis.
 
 ### **Performance**
 
@@ -394,15 +408,18 @@ De applicatie integreert met drie SOAP web services:
 
 ### **Security**
 
-⚠️ **Huidige implementatie:**
-- Basic Auth voor GRC (username/password)
-- LocalStorage voor credentials (niet encrypted)
-- Client-side only (geen backend)
+✅ **Huidige implementatie:**
+- Credentials staan in `.env` op de server, nooit in de browser
+- De connector bindt op `127.0.0.1` en is niet vanaf het netwerk bereikbaar
+- De aanvrager wordt door de server bepaald, niet door de pagina — anders kan
+  iedereen die de API bereikt indienen namens een collega
+- Oude credentials uit `localStorage` worden bij het laden gewist
+- HTTPS naar GRC, met validatie tegen de interne CA
 
-✅ **Productie aanbevelingen:**
-- Implement credential encryption in localStorage
-- Use HTTPS only
-- Implement SSO/SAML authentication
+⚠️ **Nog open:**
+- `GRC_TLS_INSECURE=true` zolang de interne root-CA niet beschikbaar is
+- SSO: de architectuur staat klaar (`AUTH_MODE=header`), er moet een proxy voor
+  die de aanmelding afhandelt
 - Add backend proxy voor GRC calls (CORS)
 - Add input sanitization voor XSS preventie
 - Implement CSP headers
@@ -411,29 +428,30 @@ De applicatie integreert met drie SOAP web services:
 
 ## ⚙️ Configuratie
 
-### **GRC Settings**
+### **GRC-instellingen**
 
-Open de applicatie, klik op ⚙️ icon en configureer:
+Serveradres, service account en endpoints staan in **`.env` op de server**, niet
+in de app. Zie [`server/README.md`](server/README.md) voor de volledige lijst.
 
-**Server Configuratie:**
-- **GRC Server URL:** `https://grc.vitens.lan` (pas aan naar jouw omgeving)
-- **Timeout:** 30000ms (standaard, 5-120 seconden)
+```bash
+GRC_BASE_URL=https://grc-dev.vitens.lan
+GRC_CLIENT=100
+GRC_USERNAME=...
+GRC_PASSWORD=...
+```
 
-**Authenticatie:**
-- **Service Account Username:** Jouw GRC service account
-- **Service Account Password:** Password (opgeslagen in localStorage)
+`GET /api/health` vertelt wat er nog ontbreekt, en het ⚙️-scherm in de app toont
+diezelfde status ter controle.
 
-**Backend Configuratie:**
-- ✅ **GRC Backend Integratie Activeren** - Toggle voor live GRC
+> **Waarom niet meer in de app?** Eerdere versies vroegen om een service account
+> in het instellingenscherm en bewaarden dat in `localStorage`. Alles wat daar
+> staat is leesbaar voor elk script op de pagina. De credentials horen in het
+> serverproces, buiten bereik van de browser. Oude opgeslagen wachtwoorden worden
+> bij het laden actief gewist.
+
+**Wat wél in het instellingenscherm staat:**
 - ✅ **Automatische Status Polling** - Poll elke 15 minuten
 - **Polling Interval:** 15 minuten (5-60 minuten)
-
-**Web Services Endpoints** (standaard waarden voor GRC 12.0):
-```
-Search:  /sap/bc/srt/rfc/sap/grac_search_roles_ws/002/...
-Request: /sap/bc/srt/rfc/sap/grac_org_asgn_request_ws/002/...
-Status:  /sap/bc/srt/rfc/sap/grac_request_status_ws/002/...
-```
 
 ### **Excel Upload Configuratie**
 
