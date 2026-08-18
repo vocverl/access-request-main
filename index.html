@@ -533,6 +533,8 @@
         }
 
         .dropdown-optie {
+            display: flex;
+            gap: 10px;
             padding: 9px 12px;
             cursor: pointer;
             font-size: 0.95em;
@@ -551,12 +553,16 @@
             color: var(--brand-primary, #2c3c8a);
         }
 
+        /* Vaste kolom voor de code, zodat een lange omschrijving die over twee
+           regels loopt netjes onder zichzelf uitlijnt in plaats van onder de
+           code door. */
         .dropdown-optie .code {
-            display: inline-block;
-            min-width: 46px;
+            flex: 0 0 48px;
             color: #888;
             font-size: 0.9em;
         }
+
+        .dropdown-optie .omschrijving { flex: 1; }
 
         .filter-clear {
             padding: 10px 4px;
@@ -1796,9 +1802,10 @@
                         code.className = 'code';
                         code.textContent = optie.value;
                         rij.appendChild(code);
-                        rij.appendChild(document.createTextNode(
-                            optie.textContent.slice(streep + 3)
-                        ));
+                        const tekst = document.createElement('span');
+                        tekst.className = 'omschrijving';
+                        tekst.textContent = optie.textContent.slice(streep + 3);
+                        rij.appendChild(tekst);
                     } else {
                         rij.textContent = optie.textContent;
                     }
