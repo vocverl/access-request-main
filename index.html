@@ -2370,11 +2370,22 @@
         // WINKELWAGEN FUNCTIONALITEIT
         // ============================================
 
-        function addToCart(itemId) {
-            const item = searchResults.find(a => a.id === itemId) ||
-                         localAvailableAccess.find(a => a.id === itemId);
+        /**
+         * Vergelijkt twee id's als tekst.
+         *
+         * De lokale demodata heeft id's als getal (1, 2, 3), rollen uit GRC
+         * als tekst ("V4DCLNT100:FR:..."). En een id dat uit een data-attribuut
+         * komt is altijd tekst. Zonder deze omzetting vindt 1 === "1" niets.
+         */
+        function zelfdeId(a, b) {
+            return String(a) === String(b);
+        }
 
-            if (item && !cart.some(cartItem => cartItem.id === itemId)) {
+        function addToCart(itemId) {
+            const item = searchResults.find(a => zelfdeId(a.id, itemId)) ||
+                         localAvailableAccess.find(a => zelfdeId(a.id, itemId));
+
+            if (item && !cart.some(cartItem => zelfdeId(cartItem.id, itemId))) {
                 cart.push(item);
                 updateCart();
                 displayResults();
@@ -2382,7 +2393,7 @@
         }
 
         function removeFromCart(itemId) {
-            cart = cart.filter(item => item.id !== itemId);
+            cart = cart.filter(item => !zelfdeId(item.id, itemId));
             updateCart();
             displayResults();
         }
