@@ -2316,8 +2316,23 @@
                         showSuccess(`✓ Offline: Aanvraag voor ${cart.length} rol(len) geregistreerd. Deze wordt verstuurd zodra je online bent.`);
                         break;
 
-                    case 'online':
-                        // Online mode - verstuur naar GRC
+                    case 'online': {
+                        // GRC eist deze velden en weigert de aanvraag anders.
+                        // Vooraf controleren scheelt een rondje naar SAP en
+                        // wijst preciezer aan wat er ontbreekt.
+                        const verplicht = [
+                            ['userFirstName', 'Voornaam'],
+                            ['userLastName', 'Achternaam'],
+                            ['userEmail', 'E-mail'],
+                            ['businessJustification', 'Zakelijke rechtvaardiging']
+                        ].filter(([id]) => !document.getElementById(id).value.trim())
+                         .map(([, label]) => label);
+
+                        if (verplicht.length > 0) {
+                            showError(`Vul eerst in: ${verplicht.join(', ')}`);
+                            return;
+                        }
+
                         const response = await submitAccessRequestToGrc(cart);
 
                         if (response.success) {
@@ -2326,6 +2341,7 @@
                             throw new Error('Aanvraag mislukt');
                         }
                         break;
+                    }
                 }
 
                 // Reset winkelwagen
@@ -2339,12 +2355,11 @@
             } catch (error) {
                 console.error('Fout bij indienen bestelling:', error);
 
-                // Friendly error message afhankelijk van mode
-                if (currentMode === 'online') {
-                    showError('🌐 Kan geen verbinding maken met SAP GRC. Schakel over naar Offline modus of probeer het later opnieuw.');
-                } else {
-                    showError('Er is een fout opgetreden. Probeer het opnieuw.');
-                }
+                // De connector geeft een bruikbare reden terug - GRC meldt
+                // bijvoorbeeld welk veld ontbreekt. Die hier vervangen door
+                // "kan geen verbinding maken" stuurt de gebruiker het verkeerde
+                // spoor op: er is wel verbinding, de aanvraag werd geweigerd.
+                showError(`Aanvraag niet ingediend: ${error.message}`);
             }
         }
 
