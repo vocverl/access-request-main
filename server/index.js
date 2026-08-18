@@ -103,9 +103,17 @@ app.post('/api/roles/search', async (req, res, next) => {
             businessProcess || subProcess || functionalArea || roleOwner || system
         );
 
-        if (!heeftFilter && (!searchTerm || String(searchTerm).trim().length < 2)) {
+        // Minimaal twee tekens die geen jokerteken zijn. "**" telt anders mee
+        // als geldige zoekterm, en dat vraagt GRC om alles: die zoekopdracht
+        // loopt gegarandeerd in de time-out van 30 seconden.
+        const betekenisvol = String(searchTerm ?? '').replace(/[*\s]/g, '');
+
+        if (!heeftFilter && betekenisvol.length < 2) {
             return res.status(400).json({
-                error: 'Geef een zoekterm van minimaal 2 tekens, of kies een filter'
+                error:
+                    'Geef minstens twee letters om op te zoeken, of kies een ' +
+                    'filter. Alleen jokertekens vraagt om alle rollen tegelijk, ' +
+                    'en daar komt geen antwoord op binnen de tijd.'
             });
         }
 
