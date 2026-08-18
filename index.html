@@ -1857,7 +1857,11 @@
                     id: `${role.system || '?'}:${role.roleName}`,
                     name: role.roleName,
                     description: role.roleDescription || '',
+                    // type is voor het scherm, roleTypeCode voor SAP. GRC eist
+                    // de code (COM, SIN, ...) op de aanvraagregel; de
+                    // omschrijving alleen is daar niet genoeg.
                     type: role.roleTypeDescription || role.roleType || 'SAP rol',
+                    roleTypeCode: role.roleType || '',
                     system: role.system,
                     owner: role.roleOwner || 'Niet beschikbaar'
                 }));
@@ -1906,7 +1910,8 @@
                         validTo,
                         roles: accessRequests.map((role) => ({
                             roleName: role.name,
-                            system: role.system
+                            system: role.system,
+                            roleType: role.roleTypeCode
                         }))
                     }
                 });
